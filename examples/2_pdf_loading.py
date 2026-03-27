@@ -8,6 +8,7 @@ them for RAG processing.
 from rag_data_ingestion import PDFLoader, TextCleaner
 
 
+
 def example_basic_pdf_loading():
     """Basic PDF loading with metadata extraction."""
     loader = PDFLoader()

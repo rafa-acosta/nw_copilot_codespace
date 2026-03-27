@@ -1,4 +1,4 @@
-#!/workspaces/nw_copilot_codespace/venv/bin/python3
+#!/workspaces/nw_copilot_codespace/venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys

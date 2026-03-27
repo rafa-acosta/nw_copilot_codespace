@@ -13,10 +13,10 @@ def example_basic_text_loading():
     loader = TextFileLoader()
     
     # Assumes 'document.txt' exists in the workspace
-    # data = loader.load('document.txt')
-    # print(f"Content preview: {data.content[:200]}")
-    # print(f"Source type: {data.source.source_type}")
-    # print(f"Metadata: {data.source.metadata}")
+    data = loader.load('/workspaces/nw_copilot_codespace/testing_files/gibson.txt')
+    print(f"Content preview: {data.content[:200]}")
+    print(f"Source type: {data.source.source_type}")
+    print(f"Metadata: {data.source.metadata}")
     print("Example: Basic text loading")
     print("Uncomment code above with actual file path to run")
 
@@ -36,8 +36,8 @@ def example_custom_text_cleaning():
     
     loader = TextFileLoader(cleaner=cleaner)
     
-    # data = loader.load('document.txt', encoding='utf-8')
-    # print(f"Cleaned content:\n{data.content}")
+    data = loader.load('/workspaces/nw_copilot_codespace/testing_files/gibson.txt', encoding='utf-8')
+    print(f"Cleaned content:\n{data.content}")
     print("Example: Custom text cleaning")
     print("Uncomment code above with actual file path to run")
 
@@ -46,7 +46,8 @@ def example_text_chunking():
     """Demonstrate text chunking for RAG preprocessing."""
     from rag_data_ingestion import chunk_text
     
-    sample_text = "This is a sample text that will be chunked. " * 50
+    #sample_text = "This is a sample text that will be chunked. " * 50
+    sample_text = 
     
     # Chunk into 300-character pieces with 50-character overlap
     chunks = chunk_text(sample_text, chunk_size=300, overlap=50)
@@ -60,8 +61,8 @@ if __name__ == "__main__":
     print("RAG Data Ingestion - Example 1: Text Files")
     print("=" * 60)
     
-    example_basic_text_loading()
-    print()
-    example_custom_text_cleaning()
-    print()
+    #example_basic_text_loading()
+    #print()
+    #example_custom_text_cleaning()
+    #print()
     example_text_chunking()
