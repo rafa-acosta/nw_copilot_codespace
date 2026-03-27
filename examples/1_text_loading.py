@@ -46,8 +46,10 @@ def example_text_chunking():
     """Demonstrate text chunking for RAG preprocessing."""
     from rag_data_ingestion import chunk_text
     
+    loader = TextFileLoader() # instance for text loader
+
     #sample_text = "This is a sample text that will be chunked. " * 50
-    sample_text = 
+    sample_text = loader.load('/workspaces/nw_copilot_codespace/testing_files/gibson.txt', encoding='utf-8')
     
     # Chunk into 300-character pieces with 50-character overlap
     chunks = chunk_text(sample_text, chunk_size=300, overlap=50)
