@@ -1,63 +1,57 @@
-[Clear Vocals]
-[Verse 1]
-Yo soy la tormenta que te acaba y que te mengua  
-Soy el huracán que te dobla y te acompleja
-Te causo dolor caso omiso de justicia
-Cariño mal logrado sin evidencia de verguenza   
+[CLEAR VOCALS]
+[VERSE 1]
+YO SOY LA TORMENTA QUE TE ACABA Y QUE TE MENGUA  
+SOY EL HURACáN QUE TE DOBLA Y TE ACOMPLEJA
+TE CAUSO DOLOR CASO OMISO DE JUSTICIA
+CARIñO MAL LOGRADO SIN EVIDENCIA DE VERGUENZA   
 
-[Instrumental bridge]&  &&&asdfjlqwhe
-
-TABLE_ROW | MODEL | FEATURE | NOTE
-ES-335 | electric guitar | sustain tone | dealer memo
-- collectors discuss originality hardware serial numbers
-* finish checking fret wear headstock repairs affect value
-• vintage tone debate humbucker vs p90 pickups
-log_entry,page=1,model=ES-335,temp=30C,status=hold
-
-[Verse2]
-Yo que valgo poco, te aplasto sin piedad ********
-Consciente del poder que me otorga mi inconciencia
-Tu inseguridad es la clave de mi fuerza *****
-Odio ilimitado sin aparente umbral
-
-[Chorus]
-Mi vendaval derrota a tu verdad
-Tu voluntad cede ante mi maldad 
-El escape a esta muerte no puede pasar de frente 
-Nadie puede escapar de mi
-
-[Build-up]
-
-[Instrumental bridge]
-[Melodic slow alternative metal solo][Tool style]
-
-[Outro bridge]
-[Outro verse]
-[Alternative metal] [sad ballad][slow] 
-Y tu te vas 
-Ignorando que te amo de verdad 
-Y yo aquí 
-En espera de una muestra de bondad
-Y que mas da
-Si no entiendes mi manera de querer 
-Y ya vendrá 
-La oportunidad de renacer
+[INSTRUMENTAL BRIDGE] www.rafa-acosta.com
 
 
-[Outro verse 2][power ballad][mid speed]
-Tu incomprensión 
-Me confunde y no me deja respirar
-Es maldición 
-Para una forma diferente de apreciar
-Mi bendición 
-Para ti es que yo quiera compartir
-Todo mi ser 
-Ser la persona que yo soy
+[VERSE2]
+YO QUE VALGO POCO, TE APLASTO SIN PIEDAD ********
+CONSCIENTE DEL PODER QUE ME OTORGA MI INCONCIENCIA
+TU INSEGURIDAD ES LA CLAVE DE MI FUERZA *****
+ODIO ILIMITADO SIN APARENTE UMBRAL
+
+[CHORUS]
+MI VENDAVAL DERROTA A TU VERDAD
+TU VOLUNTAD CEDE ANTE MI MALDAD 
+EL ESCAPE A ESTA MUERTE NO PUEDE PASAR DE FRENTE 
+NADIE PUEDE ESCAPAR DE MI
+
+[BUILD-UP]
+
+[INSTRUMENTAL BRIDGE]
+[MELODIC SLOW ALTERNATIVE METAL SOLO][TOOL STYLE]
+
+[OUTRO BRIDGE]
+[OUTRO VERSE]
+[ALTERNATIVE METAL] [SAD BALLAD][SLOW] 
+Y TU TE VAS 
+IGNORANDO QUE TE AMO DE VERDAD 
+Y YO AQUí 
+EN ESPERA DE UNA MUESTRA DE BONDAD
+Y QUE MAS DA
+SI NO ENTIENDES MI MANERA DE QUERER 
+Y YA VENDRá 
+LA OPORTUNIDAD DE RENACER
 
 
-[Fast Technical Shred Guitar Solo]
-[Virtuoso Neoclassical Alternate Picking]
-[Melodic Paul Gilbert Style Shredding]
+[OUTRO VERSE 2][POWER BALLAD][MID SPEED]
+TU INCOMPRENSIóN 
+ME CONFUNDE Y NO ME DEJA RESPIRAR
+ES MALDICIóN 
+PARA UNA FORMA DIFERENTE DE APRECIAR
+MI BENDICIóN 
+PARA TI ES QUE YO QUIERA COMPARTIR
+TODO MI SER 
+SER LA PERSONA QUE YO SOY
 
-[Outro]
-[Fade Out]
+
+[FAST TECHNICAL SHRED GUITAR SOLO]
+[VIRTUOSO NEOCLASSICAL ALTERNATE PICKING]
+[MELODIC PAUL GILBERT STYLE SHREDDING]
+
+[OUTRO]
+[FADE OUT]
