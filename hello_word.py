@@ -37,7 +37,24 @@ def procesadorPDF():
     print(f"PDF Metadata: {data.source.metadata}")
 
 
+
+
+def procesadorURLs():
+    try:
+        loader = WebLoader()
+    except ImportError as e:
+        print("ERROR: Web support dependency missing:", e)
+        print("Install it in your active environment with: python -m pip install requests beautifulsoup4")
+        return
+
+    data = loader.load('https://http://rafa-acosta.com/')
+    print(f"Content preview: {data.content[:1000]}")
+    print(f"Metadata: {data.source.metadata}")
+
+# ===========================================================================================================================================
+# ===========================================================================================================================================
+
+
 if __name__ == "__main__":
     #example_custom_text_cleaning()
-    procesadorPDF()
-
+    procesadorURLs()
