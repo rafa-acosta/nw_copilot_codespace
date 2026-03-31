@@ -1,0 +1,126 @@
+Switch#show running-config
+Building configuration...
+
+Current configuration : 2085 bytes
+!
+version 12.2
+no service pad
+service timestamps debug uptime
+service timestamps log uptime
+no service password-encryption
+!
+hostname Switch
+!
+!
+no aaa new-model
+switch 1 provision ws-c3750g-24ts
+system mtu routing 1500
+ip subnet-zero
+ip routing
+!
+ip dhcp pool vlan2
+   network 10.10.0.0 255.255.255.0
+   default-router 10.10.0.1
+   dns-server 208.67.222.222 208.67.220.220
+   lease 7
+!
+ip dhcp pool vlan3
+   network 10.10.1.0 255.255.255.0
+   default-router 10.10.1.254
+   dns-server 208.67.222.222 208.67.220.220
+   lease 7
+!
+!
+!
+!
+no file verify auto
+spanning-tree mode pvst
+spanning-tree extend system-id
+!
+vlan internal allocation policy ascending
+!
+interface GigabitEthernet1/0/1
+!
+interface GigabitEthernet1/0/2
+ switchport access vlan 2
+ switchport mode access
+ spanning-tree portfast
+ ip dhcp snooping trust
+!
+interface GigabitEthernet1/0/3
+ switchport access vlan 3
+ switchport mode access
+ spanning-tree portfast
+ ip dhcp snooping trust
+!
+interface GigabitEthernet1/0/4
+!
+interface GigabitEthernet1/0/5
+!
+interface GigabitEthernet1/0/6
+!
+interface GigabitEthernet1/0/7
+!
+interface GigabitEthernet1/0/8
+!
+interface GigabitEthernet1/0/9
+!
+interface GigabitEthernet1/0/10
+!
+interface GigabitEthernet1/0/11
+!
+interface GigabitEthernet1/0/12
+!
+interface GigabitEthernet1/0/13
+!
+interface GigabitEthernet1/0/14
+!
+interface GigabitEthernet1/0/15
+!
+interface GigabitEthernet1/0/16
+!
+interface GigabitEthernet1/0/17
+!
+interface GigabitEthernet1/0/18
+!
+interface GigabitEthernet1/0/19
+!
+interface GigabitEthernet1/0/20
+!
+interface GigabitEthernet1/0/21
+!
+interface GigabitEthernet1/0/22
+!
+interface GigabitEthernet1/0/23
+!
+interface GigabitEthernet1/0/24
+!
+interface GigabitEthernet1/0/25
+!
+interface GigabitEthernet1/0/26
+!
+interface GigabitEthernet1/0/27
+!
+interface GigabitEthernet1/0/28
+!
+interface Vlan1
+ ip address 172.16.0.100 255.255.255.0
+!
+interface Vlan2
+ ip address 10.10.0.1 255.255.255.0
+!
+interface Vlan3
+ ip address 10.10.1.254 255.255.255.0
+!
+ip classless
+ip route 0.0.0.0 0.0.0.0 172.16.0.254
+ip http server
+!
+!
+control-plane
+!
+!
+line con 0
+line vty 5 15
+!
+end

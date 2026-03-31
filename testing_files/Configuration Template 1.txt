@@ -1,0 +1,83 @@
+! Configuration Template
+!
+! Note: Replace placeholders like XX-X<XXX>-<XX> and <PortNumber> with appropriate values.
+!
+! Enter privileged exec mode
+enable
+!
+! Enter global configuration mode
+configure terminal
+!
+! Set software version
+version <SoftwareVersion>
+!
+! Disable unnecessary services
+no service pad
+service timestamps debug datetime msec
+service timestamps log datetime msec
+no service password-encryption
+no service dhcp
+!
+! Set hostname
+hostname <Hostname>
+!
+! Set system MTU
+system mtu routing <SystemMTU>
+!
+! Configure Spanning Tree Protocol
+spanning-tree mode pvst
+spanning-tree extend system-id
+!
+! Set VLAN internal allocation policy
+vlan internal allocation policy ascending
+!
+! Configure interfaces
+interface FastEthernet0/1
+ description **** Link to XX-X<XXX>-<XX> <PortNumber> ****
+ shutdown
+ speed 100
+ duplex full
+!
+! Repeat for remaining interfaces...
+!
+interface GigabitEthernet0/1
+ description **** Link to XX-X<XXX>-<XX> <PortNumber> ****
+ shutdown
+ speed 1000
+ duplex full
+!
+! Configure VLAN interface Management IP
+interface Vlan1
+ ip address <ManagementIP> <SubnetMask>
+ no shutdown
+!
+! Configure HTTP server
+ip http server
+ip http secure-server
+!
+! Enable VLAN stacking
+vstack
+!
+! Set enable secret for console
+enable secret <ConsolePassword>
+!
+! Configure console and VTY lines
+line con 0
+  username <ConsoleUsername>
+  enable password <EnablePassword>
+!
+! Configure login banner
+banner motd #
+******************************************************************************
+** *                                  WARNING                             * **
+** *                                                                      * **
+** *    Unauthorized access to this computer                              * **
+** *    system may constitute a criminal offense                          * **
+** *                                                                      * **
+******************************************************************************
+#
+!
+! Exit configuration mode
+end
+!
+! www.anthonyconstant.co.uk

@@ -1,6 +1,13 @@
 print("This is a simple example of a Python script that prints 'Hello, World!' to the console.\n\n")
 
-from rag_data_ingestion import TextFileLoader, TextCleaner,PDFLoader, DocxLoader,WebLoader
+from rag_data_ingestion import (
+    TextFileLoader,
+    TextCleaner,
+    PDFLoader,
+    DocxLoader,
+    WebLoader,
+    CiscoConfigLoader
+) 
 
 
 def example_custom_text_cleaning():
@@ -51,10 +58,24 @@ def procesadorURLs():
     print(f"Content preview: {data.content[:1000]}")
     print(f"Metadata: {data.source.metadata}")
 
+def ciscoPassRedactor():
+    """Demonstrate sensitive data redaction in Cisco configs."""
+    loader = CiscoConfigLoader()
+    
+    # Passwords and secrets are redacted by default
+    data = loader.load('/home/rafa/Documents/AIML/Projects/nw-copilot-3-pipelines-v1/nw_copilot_codespace/testing_files/Configuration Template 2.txt', redact_sensitive=True)
+    # Passwords will appear as:
+    # enable password [REDACTED]
+    # snmp-server community [REDACTED]
+    # print("Configuration with redacted sensitive data")
+    print(data.content)
+    print("Example: Cisco config with sensitive data redaction")
+    print("Uncomment code above with actual config to run")
+
 # ===========================================================================================================================================
 # ===========================================================================================================================================
 
 
 if __name__ == "__main__":
     #example_custom_text_cleaning()
-    procesadorURLs()
+    ciscoPassRedactor()
