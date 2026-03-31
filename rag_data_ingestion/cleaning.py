@@ -28,7 +28,7 @@ def remove_extra_whitespace(text: str) -> str:
     Remove extra whitespace while preserving paragraph structure.
     
     Collapses multiple spaces to single space and removes leading/trailing
-    whitespace from each line.
+    whitespace from each line. Also collapses multiple consecutive newlines.
     
     Args:
         text: Input text with potential extra whitespace.
@@ -45,7 +45,17 @@ def remove_extra_whitespace(text: str) -> str:
         lines.pop(0)
     while lines and not lines[-1]:
         lines.pop()
-    return '\n'.join(lines)
+    # Remove consecutive empty lines (more than one)
+    cleaned_lines = []
+    prev_empty = False
+    for line in lines:
+        if line:
+            cleaned_lines.append(line)
+            prev_empty = False
+        elif not prev_empty:
+            cleaned_lines.append('')
+            prev_empty = True
+    return '\n'.join(cleaned_lines)
 
 
 def remove_special_characters(text: str, keep_punctuation: bool = True) -> str:
