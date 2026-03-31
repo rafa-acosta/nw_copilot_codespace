@@ -1,6 +1,6 @@
 print("This is a simple example of a Python script that prints 'Hello, World!' to the console.\n\n")
 
-from rag_data_ingestion import TextFileLoader, TextCleaner,PDFLoader, DocxLoader
+from rag_data_ingestion import TextFileLoader, TextCleaner,PDFLoader, DocxLoader,WebLoader
 
 
 def example_custom_text_cleaning():
@@ -47,7 +47,7 @@ def procesadorURLs():
         print("Install it in your active environment with: python -m pip install requests beautifulsoup4")
         return
 
-    data = loader.load('https://http://rafa-acosta.com/')
+    data = loader.load('https://rafa-acosta.com/')
     print(f"Content preview: {data.content[:1000]}")
     print(f"Metadata: {data.source.metadata}")
 
