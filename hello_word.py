@@ -1,4 +1,4 @@
-print("This is a simple example of a Python script that prints 'Hello, World!' to the console.\n\n")
+from pathlib import Path
 
 from rag_data_ingestion import (
     TextFileLoader,
@@ -6,8 +6,12 @@ from rag_data_ingestion import (
     PDFLoader,
     DocxLoader,
     WebLoader,
-    CiscoConfigLoader
-) 
+    CiscoConfigLoader,
+)
+from rag_processing import CleanDocument, DocumentPipeline
+
+
+print("This is a simple example of a Python script that prints 'Hello, World!' to the console.\n\n")
 
 
 def example_custom_text_cleaning():
@@ -25,11 +29,12 @@ def example_custom_text_cleaning():
     
     loader = TextFileLoader(cleaner=cleaner)
     
-    data = loader.load('/workspaces/nw_copilot_codespace/testing_files/huracan.txt', encoding='utf-8')
+    data = loader.load(str(_testing_file("huracan.txt")), encoding='utf-8')
     print(f"Cleaned content:\n\n{data.content}")
     print('='*100)
     print("Example: Custom text cleaning")
     print("Uncomment code above with actual file path to run")
+    return data.content
 
 def procesadorPDF():
     try:
@@ -39,7 +44,7 @@ def procesadorPDF():
         print("Install it in your active environment with: python -m pip install PyPDF2")
         return
 
-    data = loader.load('/workspaces/nw_copilot_codespace/testing_files/HIPOTECA 90 MILLONES.pdf', extract_metadata=True)
+    data = loader.load(str(_testing_file("HIPOTECA 90 MILLONES.pdf")), extract_metadata=True)
     print(f"Content preview: {data.content[:1000]}")
     print(f"PDF Metadata: {data.source.metadata}")
 
@@ -63,7 +68,7 @@ def ciscoPassRedactor():
     loader = CiscoConfigLoader()
     
     # Passwords and secrets are redacted by default
-    data = loader.load('/home/rafa/Documents/AIML/Projects/nw-copilot-3-pipelines-v1/nw_copilot_codespace/testing_files/Configuration Template 2.txt', redact_sensitive=True)
+    data = loader.load(str(_testing_file("Configuration Template 2.txt")), redact_sensitive=True)
     # Passwords will appear as:
     # enable password [REDACTED]
     # snmp-server community [REDACTED]
@@ -76,6 +81,25 @@ def ciscoPassRedactor():
 # ===========================================================================================================================================
 
 
+def _testing_file(filename: str) -> Path:
+    base_dir = Path(__file__).resolve().parent
+    return base_dir / "testing_files" / filename
+
+
+def procesadorTextoConRag() -> None:
+    loader = TextFileLoader()
+    ingested = loader.load(str(_testing_file("huracan.txt")))
+    clean_doc = CleanDocument.from_ingested(ingested)
+    pipeline = DocumentPipeline(max_size=1200, overlap=150)
+    chunks = pipeline.run(clean_doc)
+    print(f"Total chunks: {len(chunks)}")
+    print(f"First chunk preview: {chunks[0].content[:500]}")
+    print(f"Metadata: {chunks[0].metadata}")
+
+
 if __name__ == "__main__":
-    #example_custom_text_cleaning()
-    ciscoPassRedactor()
+    # example_custom_text_cleaning()
+    # procesadorPDF()
+    # procesadorURLs()
+    # ciscoPassRedactor()
+    procesadorTextoConRag()

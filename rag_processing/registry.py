@@ -55,6 +55,7 @@ class ProcessorRegistry:
 
 
 ProcessorRegistry.register("text", TextStructureExtractor, TextChunker, DefaultMetadataEnricher)
+ProcessorRegistry.register("text_file", TextStructureExtractor, TextChunker, DefaultMetadataEnricher)
 ProcessorRegistry.register("pdf", PdfStructureExtractor, PdfChunker, PdfMetadataEnricher)
 ProcessorRegistry.register("url", WebStructureExtractor, WebChunker, DefaultMetadataEnricher)
 ProcessorRegistry.register("web", WebStructureExtractor, WebChunker, DefaultMetadataEnricher)

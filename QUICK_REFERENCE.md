@@ -154,37 +154,6 @@ for chunk in chunks:
 
 ---
 
-## RAG Processing Pipeline (rag_processing)
-
-### Pipeline Overview
-Structure extraction → semantic chunking → metadata enrichment.
-
-```python
-from rag_processing import CleanDocument, DocumentPipeline
-
-clean_doc = CleanDocument(
-  document_id="doc1",
-  source_type="text",
-  source="memory://text",
-  content="Para one.\n\nPara two.",
-  metadata={},
-)
-
-pipeline = DocumentPipeline(max_size=1200, overlap=150)
-chunks = pipeline.run(clean_doc)
-```
-
-### Source Type Mapping
-- text → TextStructureExtractor + TextChunker + DefaultMetadataEnricher
-- pdf → PdfStructureExtractor + PdfChunker + PdfMetadataEnricher
-- web/url → WebStructureExtractor + WebChunker + DefaultMetadataEnricher
-- docx → DocxStructureExtractor + DocxChunker + DefaultMetadataEnricher
-- excel → ExcelStructureExtractor + ExcelChunker + ExcelMetadataEnricher
-- json → JsonStructureExtractor + JsonChunker + JsonMetadataEnricher
-- cisco → CiscoStructureExtractor + CiscoChunker + CiscoMetadataEnricher
-
----
-
 ## FAQs
 
 **Q: What's the difference between my cleaner settings?**  
@@ -212,12 +181,6 @@ A: Current design loads into memory. For streaming, wrap loaders with `asyncio` 
   - `cleaning.py` - Text processing
   - `*_loader.py` - Format-specific loaders
 
-- **rag_processing/** - Structure → chunk → metadata pipeline
-  - `extractors.py` - Structure extraction per format
-  - `chunkers.py` - Semantic chunking per format
-  - `enrichers.py` - Metadata enrichment
-  - `pipeline.py` - End-to-end processing
-
 - **examples/** - 7 working scenarios
   - Start with `1_text_loading.py`
   - See `6_advanced_usage.py` for patterns
@@ -227,7 +190,6 @@ A: Current design loads into memory. For streaming, wrap loaders with `asyncio` 
   - `README.md` - Quick start
   - `ARCHITECTURE.md` - Deep dive
   - `IMPLEMENTATION_SUMMARY.md` - Project overview
-  - `TESTING_GUIDE.md` - Testing rag_processing step-by-step
 
 ---
 
