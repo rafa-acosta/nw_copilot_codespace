@@ -63,3 +63,4 @@ ProcessorRegistry.register("docx", DocxStructureExtractor, DocxChunker, DefaultM
 ProcessorRegistry.register("excel", ExcelStructureExtractor, ExcelChunker, ExcelMetadataEnricher)
 ProcessorRegistry.register("json", JsonStructureExtractor, JsonChunker, JsonMetadataEnricher)
 ProcessorRegistry.register("cisco", CiscoStructureExtractor, CiscoChunker, CiscoMetadataEnricher)
+ProcessorRegistry.register("cisco_config", CiscoStructureExtractor, CiscoChunker, CiscoMetadataEnricher)
