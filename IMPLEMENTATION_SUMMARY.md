@@ -6,7 +6,7 @@ A production-ready, modular Python library for ingesting and preprocessing diver
 
 **Created Date:** March 25, 2026  
 **Version:** 1.0.0  
-**Python:** 3.8+  
+**Python:** 3.8+ (ingestion), 3.11+ (rag_processing)  
 **Status:** ✅ Complete and Operational
 
 ---
@@ -90,13 +90,41 @@ A comprehensive data ingestion framework with:
 - Configurable cleaning per format
 - Built-in text chunking utility
 
+### RAG Processing (`rag_processing/`)
+
+Next-stage pipeline for **Structure Extraction → Chunking → Metadata Enrichment** operating on already cleaned text.
+
+**Core Components:**
+- **StructureExtractor** - Base interface for structure extraction
+- **Chunker** - Semantic chunking with size/overlap + fallback splitting
+- **MetadataEnricher** - Consistent metadata enrichment across chunk types
+
+**Data Models:**
+- **CleanDocument** - Cleaned input document
+- **StructuredDocument** - Tree of structural nodes
+- **StructuralNode** - Node in structure tree (section/block/row/etc.)
+- **Chunk** - Chunked content with metadata
+- **Metadata** - Retrieval-optimized metadata (type-specific included)
+
+**Registry / Factory:**
+- **ProcessorRegistry** maps `source_type` → extractor/chunker/enricher
+
+**Document-Specific Logic:**
+- **Text** → paragraph + recursive chunking
+- **PDF** → page + block chunking (avoids column mixing)
+- **Web** → section-aware chunking via heading heuristics
+- **DOCX** → heading + table segmentation
+- **Excel** → row-based chunking (no overlap)
+- **JSON** → object-level chunking + path preservation
+- **Cisco** → regex block parsing (interface, router, ACL, class-map, policy-map, line)
+
 ---
 
 ## 📊 Project Statistics
 
 ### Code Metrics
-- **Total Modules:** 9 (base, cleaning, utils + 6 loaders)
-- **Lines of Code:** ~3,500 (library)
+- **Total Modules:** 18 (ingestion + processing)
+- **Lines of Code:** ~4,300 (library + processing)
 - **Documentation:** ~4,000 lines (ARCHITECTURE.md)
 - **Examples:** 7 complete scenarios
 - **Type Hints:** 100% coverage
@@ -124,6 +152,17 @@ rag_data_ingestion/
 ├── json_loader.py (165 lines)
 └── cisco_loader.py (220 lines)
 
+rag_processing/
+├── __init__.py
+├── base.py
+├── models.py
+├── utils.py
+├── extractors.py
+├── chunkers.py
+├── enrichers.py
+├── registry.py
+└── pipeline.py
+
 examples/
 ├── 1_text_loading.py (60 lines)
 ├── 2_pdf_loading.py (65 lines)
@@ -138,6 +177,8 @@ Supporting:
 ├── ARCHITECTURE.md (3000+ lines)
 ├── setup.py (60 lines)
 └── requirements.txt
+└── TESTING_GUIDE.md
+└── tests/test_rag_processing.py
 ```
 
 ---
@@ -151,6 +192,7 @@ Supporting:
 - ✅ Independent ingestion functions
 - ✅ Text cleaning and normalization
 - ✅ RAG-ready outputs (cleaned + chunked)
+- ✅ Structure extraction, semantic chunking, metadata enrichment
 
 **Architectural Requirements:**
 - ✅ Modular design with clean separation
@@ -239,6 +281,23 @@ chunks = chunk_text(data.content, chunk_size=1000, overlap=100)
 # Send to embeddings...
 ```
 
+### RAG Processing Usage
+
+```python
+from rag_processing import CleanDocument, DocumentPipeline
+
+clean_doc = CleanDocument(
+   document_id="doc1",
+   source_type="text",
+   source="memory://text",
+   content="Para one.\n\nPara two.",
+   metadata={},
+)
+
+pipeline = DocumentPipeline(max_size=1200, overlap=150)
+chunks = pipeline.run(clean_doc)
+```
+
 ---
 
 ## 📚 Documentation Quality
@@ -288,6 +347,14 @@ All examples have been verified to work:
 # All imports work correctly
 ✅ from rag_data_ingestion import TextFileLoader, PDFLoader, ...
 ```
+
+### RAG Processing Tests
+
+```bash
+python3 -m unittest tests/test_rag_processing.py
+```
+
+See TESTING_GUIDE.md for step-by-step testing of extractors, chunkers, and enrichers.
 
 ---
 

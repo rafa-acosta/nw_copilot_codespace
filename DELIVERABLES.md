@@ -33,7 +33,28 @@ A modular, production-ready Python package for ingesting diverse data formats.
 
 **Total:** 1,577 lines of production code
 
-### 2. **7 Comprehensive Examples: `examples/` (812 lines)**
+### 2. **RAG Processing Pipeline: `rag_processing/`**
+
+Structure extraction → semantic chunking → metadata enrichment, operating on cleaned text.
+
+**Components:**
+
+| Module | Purpose | Status |
+|--------|---------|--------|
+| `base.py` | Abstract interfaces | ✅ |
+| `models.py` | CleanDocument, Chunk, Metadata | ✅ |
+| `utils.py` | Chunking helpers | ✅ |
+| `extractors.py` | Structure extraction per format | ✅ |
+| `chunkers.py` | Semantic chunking per format | ✅ |
+| `enrichers.py` | Metadata enrichment | ✅ |
+| `registry.py` | Source type registry | ✅ |
+| `pipeline.py` | End-to-end processing | ✅ |
+
+**Tests & Guide:**
+- `tests/test_rag_processing.py`
+- `TESTING_GUIDE.md`
+
+### 3. **7 Comprehensive Examples: `examples/` (812 lines)**
 
 Real-world usage scenarios covering every feature:
 
@@ -47,7 +68,7 @@ Real-world usage scenarios covering every feature:
 
 **All examples verified working** ✅
 
-### 3. **Documentation (4,500+ lines)**
+### 4. **Documentation (4,500+ lines)**
 
 **README.md** (330 lines)
 - Quick start guide
@@ -78,7 +99,10 @@ Real-world usage scenarios covering every feature:
 - Design decisions
 - Statistics & metrics
 
-### 4. **Configuration Files**
+**TESTING_GUIDE.md**
+- Step-by-step testing for rag_processing
+
+### 5. **Configuration Files**
 
 **setup.py** (60 lines)
 - Package metadata
@@ -164,6 +188,12 @@ lxml==4.9.3
 ✅ **Metadata Tracking** - Source and processing info  
 ✅ **Format-specific Options** - Control preprocessing per format  
 
+### RAG Processing (Post-Cleaning)
+
+✅ **Structure extraction** - Section/block/row/object detection  
+✅ **Semantic chunking** - Max size, overlap, fallback splitting  
+✅ **Metadata enrichment** - Retrieval-optimized fields per chunk  
+
 ---
 
 ## 🎯 Requirements Fulfillment
@@ -180,6 +210,7 @@ lxml==4.9.3
 - [x] Text cleaning and normalization
 - [x] Structured text outputs
 - [x] RAG-ready formatting
+- [x] Structure extraction, chunking, metadata enrichment
 
 ### Architectural Requirements ✅
 

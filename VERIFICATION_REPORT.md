@@ -50,6 +50,27 @@ print(data.source.metadata)  # ✅ Metadata preserved
 chunks = chunk_text(data.content)  # ✅ Chunking ready
 ```
 
+#### ✅ RAG Processing Pipeline (Post-Cleaning)
+- [x] Structure extraction layer
+- [x] Semantic chunking with size/overlap + fallback
+- [x] Metadata enrichment (IDs, paths, type-specific fields)
+- [x] Registry mapping by `source_type`
+
+**Verification:**
+```python
+from rag_processing import CleanDocument, DocumentPipeline
+
+doc = CleanDocument(
+    document_id="doc1",
+    source_type="text",
+    source="memory://text",
+    content="Para one.\n\nPara two.",
+    metadata={},
+)
+chunks = DocumentPipeline(max_size=200, overlap=10).run(doc)
+print(chunks[0].metadata.chunk_id)  # ✅ Enriched metadata
+```
+
 ---
 
 ### Architectural Requirements

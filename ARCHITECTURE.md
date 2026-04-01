@@ -41,11 +41,44 @@ examples/
 ├── 5_json_and_config.py     # JSON and config examples
 ├── 6_advanced_usage.py      # Factory and batch processing
 └── 7_end_to_end_pipeline.py # Complete RAG pipeline
+
+rag_processing/
+├── __init__.py              # Package exports
+├── base.py                  # Abstract processor classes
+├── models.py                # CleanDocument, Chunk, Metadata
+├── utils.py                 # Chunking helpers
+├── extractors.py            # Structure extractors
+├── chunkers.py              # Semantic chunkers
+├── enrichers.py             # Metadata enrichers
+├── registry.py              # Processor registry
+└── pipeline.py              # End-to-end pipeline
 ```
 
 ---
 
 ## Key Components
+
+### 0. RAG Processing Layer (`rag_processing/`)
+
+The processing layer operates **only on cleaned text** and provides the next stage in the pipeline:
+
+**CleanDocument → StructuredDocument → Chunk → Metadata**
+
+**Core abstractions:**
+- `StructureExtractor` for source-specific structure detection
+- `Chunker` for semantic chunking with size/overlap and fallback splitting
+- `MetadataEnricher` for retrieval-ready metadata
+
+**Per-source logic:**
+- Text → paragraph + recursive chunking
+- PDF → page/block chunking using page markers
+- Web → section-aware chunking via heading heuristics
+- DOCX → heading/table segmentation
+- Excel → row-based chunking (no overlap)
+- JSON → object-level chunking with JSON path preservation
+- Cisco → regex block parsing (interface/router/ACL/class-map/policy-map/line)
+
+**Registry:** `ProcessorRegistry` maps `source_type` → extractor/chunker/enricher.
 
 ### 1. Base Classes (`base.py`)
 

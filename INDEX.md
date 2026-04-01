@@ -16,6 +16,7 @@ Start here:
 Deep dive:
 1. **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete technical guide
 2. Review [rag_data_ingestion/](rag_data_ingestion/) module organization
+3. Review [rag_processing/](rag_processing/) structure & pipeline
 3. Check design patterns section in ARCHITECTURE.md
 
 ### ✅ **For Verification**
@@ -28,6 +29,7 @@ Proof:
 Practical:
 1. **[examples/](examples/)** - 7 working examples
 2. **[rag_data_ingestion/](rag_data_ingestion/)** - Main library
+3. **[rag_processing/](rag_processing/)** - Structure → chunk → metadata pipeline
 
 ---
 
@@ -64,12 +66,20 @@ The main Python package with:
 - **DELIVERABLES.md** (14 KB) - What was built
 - **IMPLEMENTATION_SUMMARY.md** (11 KB) - Project overview
 - **VERIFICATION_REPORT.md** (13 KB) - Requirements verified
+- **TESTING_GUIDE.md** - Testing the processing pipeline
 
 ### Configuration: 2 Files
 - **requirements.txt** - Python dependencies
 - **setup.py** - Package configuration
 
 ---
+
+### RAG Processing: `rag_processing/`
+Pipeline for structure extraction, semantic chunking, and metadata enrichment:
+- Base interfaces: `StructureExtractor`, `Chunker`, `MetadataEnricher`
+- Models: `CleanDocument`, `StructuredDocument`, `StructuralNode`, `Chunk`, `Metadata`
+- Registry: `ProcessorRegistry` maps `source_type` → processors
+- Source-specific logic for text, PDF, web, DOCX, Excel, JSON, Cisco
 
 ## 🎓 Learning Path
 
