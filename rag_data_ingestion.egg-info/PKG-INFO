@@ -69,6 +69,11 @@ Built with extensibility, maintainability, and best practices in mind.
 - Contraction expansion
 - Ready for chunking and embedding
 
+✅ **RAG Processing Pipeline**
+- Structure extraction
+- Semantic chunking (size/overlap + fallback)
+- Metadata enrichment optimized for retrieval
+
 ✅ **Production-Ready Design**
 - Type hints on all functions
 - Comprehensive error handling
@@ -107,6 +112,23 @@ data = loader.load('document.txt')
 
 print(data.content)  # Cleaned text
 print(data.source.metadata)  # Source info
+```
+
+### 2.1 RAG Processing Usage
+
+```python
+from rag_processing import CleanDocument, DocumentPipeline
+
+clean_doc = CleanDocument(
+    document_id="doc1",
+    source_type="text",
+    source="memory://text",
+    content="Para one.\n\nPara two.",
+    metadata={},
+)
+
+pipeline = DocumentPipeline(max_size=1200, overlap=150)
+chunks = pipeline.run(clean_doc)
 ```
 
 ### 3. Different Data Formats
@@ -235,6 +257,17 @@ rag_data_ingestion/
 ├── json_loader.py           # JSON files
 └── cisco_loader.py          # Cisco configurations
 
+rag_processing/
+├── __init__.py               # Package exports
+├── base.py                   # Abstract processor classes
+├── models.py                 # CleanDocument, Chunk, Metadata
+├── utils.py                  # Chunking helpers
+├── extractors.py             # Structure extractors
+├── chunkers.py               # Semantic chunkers
+├── enrichers.py              # Metadata enrichers
+├── registry.py               # Processor registry
+└── pipeline.py               # End-to-end pipeline
+
 examples/
 ├── 1_text_loading.py        # Text examples
 ├── 2_pdf_loading.py         # PDF examples
@@ -243,6 +276,11 @@ examples/
 ├── 5_json_and_config.py     # JSON/Config examples
 ├── 6_advanced_usage.py      # Factory & batch patterns
 └── 7_end_to_end_pipeline.py # Complete RAG workflow
+
+tests/
+└── test_rag_processing.py    # Processing pipeline tests
+
+TESTING_GUIDE.md              # How to test rag_processing
 ```
 
 ---

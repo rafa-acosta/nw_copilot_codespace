@@ -16,3 +16,13 @@ rag_data_ingestion.egg-info/SOURCES.txt
 rag_data_ingestion.egg-info/dependency_links.txt
 rag_data_ingestion.egg-info/requires.txt
 rag_data_ingestion.egg-info/top_level.txt
+rag_processing/__init__.py
+rag_processing/base.py
+rag_processing/chunkers.py
+rag_processing/enrichers.py
+rag_processing/extractors.py
+rag_processing/models.py
+rag_processing/pipeline.py
+rag_processing/registry.py
+rag_processing/utils.py
+tests/test_rag_processing.py
