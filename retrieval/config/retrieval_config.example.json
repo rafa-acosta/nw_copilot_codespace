@@ -1,0 +1,88 @@
+{
+  "retrieval_mode": "hybrid",
+  "query_processing": {
+    "collapse_whitespace": true,
+    "casefold_for_keywords": true,
+    "enable_query_expansion": false,
+    "preserve_quoted_phrases": true,
+    "minimum_token_length": 2
+  },
+  "vector": {
+    "top_k": 10,
+    "candidate_pool_size": 40,
+    "score_threshold": 0.15,
+    "similarity_metric": "cosine"
+  },
+  "keyword": {
+    "enabled": true,
+    "top_k": 15,
+    "exact_phrase_boost": 2.5,
+    "technical_term_boost": 1.4,
+    "metadata_field_boost": 0.8,
+    "minimum_token_length": 2
+  },
+  "hybrid": {
+    "enabled": true,
+    "dense_weight": 0.65,
+    "keyword_weight": 0.35,
+    "fusion_strategy": "weighted_sum",
+    "reciprocal_rank_constant": 60,
+    "candidate_pool_multiplier": 4
+  },
+  "reranker": {
+    "enabled": true,
+    "exact_phrase_boost": 0.7,
+    "technical_term_boost": 0.18,
+    "metadata_match_boost": 0.15,
+    "source_hint_boost": 0.2,
+    "page_match_boost": 0.28,
+    "section_match_boost": 0.22,
+    "sheet_match_boost": 0.3,
+    "column_match_boost": 0.18,
+    "json_path_boost": 0.35,
+    "cisco_command_boost": 0.4
+  },
+  "observability": {
+    "logger_name": "retrieval",
+    "log_level": "INFO",
+    "debug": true
+  },
+  "source_profiles": {
+    "text": {
+      "dense_weight": 0.85,
+      "keyword_weight": 0.15,
+      "metadata_weight": 0.15,
+      "exact_match_weight": 0.1
+    },
+    "pdf": {
+      "dense_weight": 0.75,
+      "keyword_weight": 0.25,
+      "metadata_weight": 0.25,
+      "exact_match_weight": 0.18
+    },
+    "docx": {
+      "dense_weight": 0.7,
+      "keyword_weight": 0.3,
+      "metadata_weight": 0.3,
+      "exact_match_weight": 0.2
+    },
+    "excel": {
+      "dense_weight": 0.45,
+      "keyword_weight": 0.55,
+      "metadata_weight": 0.42,
+      "exact_match_weight": 0.32
+    },
+    "json": {
+      "dense_weight": 0.35,
+      "keyword_weight": 0.65,
+      "metadata_weight": 0.48,
+      "exact_match_weight": 0.36
+    },
+    "cisco_config": {
+      "dense_weight": 0.25,
+      "keyword_weight": 0.75,
+      "metadata_weight": 0.55,
+      "exact_match_weight": 0.45
+    }
+  }
+}

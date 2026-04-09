@@ -43,7 +43,7 @@ def loadFactory():
         result.append((file_type, len(chunks), chunks[0].metadata))
 
     for file_type, num_chunks, metadata in result:
-        print(f"File type: {file_type}, Number of chunks: {num_chunks}, Metadata: {metadata}")
+        print(f"File type: {file_type}\n, Number of chunks: {num_chunks}\n, Metadata: {metadata}\n")
 
 
 
