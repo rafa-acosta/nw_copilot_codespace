@@ -8,7 +8,12 @@ pipeline, then executes queries across multiple source types.
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 from typing import Iterable, Sequence
+
+PACKAGE_ROOT = Path(__file__).resolve().parents[1]
+if str(PACKAGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(PACKAGE_ROOT))
 
 from rag_data_ingestion import CiscoConfigLoader, DocxLoader, ExcelLoader, JSONLoader, PDFLoader, TextFileLoader
 from rag_processing import CleanDocument, DocumentPipeline
@@ -92,7 +97,9 @@ def index_documents(file_paths: Iterable[str]):
             )
         )
 
-    retrieval_config = RetrievalConfig.from_json_file("retrieval/config/retrieval_config.example.json")
+    retrieval_config = RetrievalConfig.from_json_file(
+        PACKAGE_ROOT / "retrieval" / "config" / "retrieval_config.example.json"
+    )
     query_embedder = CallableQueryEmbedder(
         embedding_model.embed_query,
         expected_dimension=len(SimpleLocalEmbeddingModel.VOCABULARY),
@@ -105,7 +112,7 @@ def index_documents(file_paths: Iterable[str]):
 
 
 def run_example() -> None:
-    testing_dir = Path("testing_files")
+    testing_dir = PACKAGE_ROOT / "testing_files"
     file_paths = [
         str(testing_dir / "huracan.txt"),
         str(testing_dir / "HIPOTECA 90 MILLONES.pdf"),
