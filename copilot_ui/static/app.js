@@ -108,10 +108,15 @@ function renderMessages() {
   for (const message of state.messages) {
     const fragment = template.content.cloneNode(true);
     const article = fragment.querySelector(".message");
+    const contentElement = fragment.querySelector(".message-content");
     article.classList.add(message.role);
     fragment.querySelector(".message-avatar").textContent = message.role === "user" ? "You" : "AI";
     fragment.querySelector(".message-role").textContent = message.role === "user" ? "You" : "Assistant";
-    fragment.querySelector(".message-content").textContent = message.content;
+    if (message.role === "assistant") {
+      contentElement.innerHTML = renderMarkdown(message.content);
+    } else {
+      contentElement.textContent = message.content;
+    }
 
     const metaParts = [];
     if (message.meta?.retrieval_mode) {
@@ -170,6 +175,193 @@ function renderFilters() {
     sourceFilterList.appendChild(chip);
   }
   sourceFilterList.dataset.initialized = "true";
+}
+
+function renderMarkdown(markdown) {
+  const normalized = String(markdown || "").replace(/\r\n?/g, "\n");
+  return renderMarkdownBlocks(normalized);
+}
+
+function renderMarkdownBlocks(markdown) {
+  const html = [];
+  const lines = markdown.split("\n");
+  let paragraphLines = [];
+  let listType = null;
+  let listItems = [];
+  let quoteLines = [];
+  let inCodeFence = false;
+  let codeFenceLanguage = "";
+  let codeFenceLines = [];
+
+  function flushParagraph() {
+    if (!paragraphLines.length) {
+      return;
+    }
+    html.push(`<p>${paragraphLines.map((line) => renderInlineMarkdown(line)).join("<br>")}</p>`);
+    paragraphLines = [];
+  }
+
+  function flushList() {
+    if (!listItems.length || !listType) {
+      return;
+    }
+    const tag = listType === "ol" ? "ol" : "ul";
+    html.push(
+      `<${tag}>${listItems
+        .map((item) => `<li>${renderInlineMarkdown(item).replace(/\n/g, "<br>")}</li>`)
+        .join("")}</${tag}>`
+    );
+    listItems = [];
+    listType = null;
+  }
+
+  function flushQuote() {
+    if (!quoteLines.length) {
+      return;
+    }
+    html.push(`<blockquote>${renderMarkdownBlocks(quoteLines.join("\n"))}</blockquote>`);
+    quoteLines = [];
+  }
+
+  function flushCodeFence() {
+    const languageClass = codeFenceLanguage ? ` class="language-${escapeHtml(codeFenceLanguage)}"` : "";
+    html.push(`<pre><code${languageClass}>${escapeHtml(codeFenceLines.join("\n"))}</code></pre>`);
+    codeFenceLines = [];
+    codeFenceLanguage = "";
+  }
+
+  for (const line of lines) {
+    const codeFenceMatch = line.match(/^```([\w-]+)?\s*$/);
+    if (inCodeFence) {
+      if (codeFenceMatch) {
+        flushCodeFence();
+        inCodeFence = false;
+      } else {
+        codeFenceLines.push(line);
+      }
+      continue;
+    }
+
+    if (codeFenceMatch) {
+      flushParagraph();
+      flushList();
+      flushQuote();
+      inCodeFence = true;
+      codeFenceLanguage = codeFenceMatch[1] || "";
+      continue;
+    }
+
+    if (!line.trim()) {
+      flushParagraph();
+      flushList();
+      flushQuote();
+      continue;
+    }
+
+    if (/^\s*>\s?/.test(line)) {
+      flushParagraph();
+      flushList();
+      quoteLines.push(line.replace(/^\s*>\s?/, ""));
+      continue;
+    }
+
+    if (quoteLines.length) {
+      flushQuote();
+    }
+
+    const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+    if (headingMatch) {
+      flushParagraph();
+      flushList();
+      const level = headingMatch[1].length;
+      html.push(`<h${level}>${renderInlineMarkdown(headingMatch[2])}</h${level}>`);
+      continue;
+    }
+
+    if (/^\s*---+\s*$/.test(line) || /^\s*\*\*\*+\s*$/.test(line)) {
+      flushParagraph();
+      flushList();
+      html.push("<hr>");
+      continue;
+    }
+
+    const orderedMatch = line.match(/^\s*\d+\.\s+(.*)$/);
+    if (orderedMatch) {
+      flushParagraph();
+      if (listType && listType !== "ol") {
+        flushList();
+      }
+      listType = "ol";
+      listItems.push(orderedMatch[1].trim());
+      continue;
+    }
+
+    const unorderedMatch = line.match(/^\s*[-*+]\s+(.*)$/);
+    if (unorderedMatch) {
+      flushParagraph();
+      if (listType === "ol" && listItems.length) {
+        listItems[listItems.length - 1] += `\n- ${unorderedMatch[1].trim()}`;
+        continue;
+      }
+      if (listType && listType !== "ul") {
+        flushList();
+      }
+      listType = "ul";
+      listItems.push(unorderedMatch[1].trim());
+      continue;
+    }
+
+    if (listItems.length) {
+      listItems[listItems.length - 1] += `\n${line.trim()}`;
+      continue;
+    }
+
+    paragraphLines.push(line.trim());
+  }
+
+  flushParagraph();
+  flushList();
+  flushQuote();
+  if (inCodeFence) {
+    flushCodeFence();
+  }
+
+  return html.join("");
+}
+
+function renderInlineMarkdown(text) {
+  const placeholders = [];
+  let safe = escapeHtml(String(text ?? ""));
+
+  safe = safe.replace(/`([^`]+)`/g, (_, code) => {
+    const key = `__CODE_${placeholders.length}__`;
+    placeholders.push(`<code>${code}</code>`);
+    return key;
+  });
+
+  safe = safe.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    (_, label, url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`
+  );
+  safe = safe.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  safe = safe.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+  safe = safe.replace(/\*([^*\n]+)\*/g, "<em>$1</em>");
+  safe = safe.replace(/_([^_\n]+)_/g, "<em>$1</em>");
+  safe = safe.replace(/~~([^~]+)~~/g, "<del>$1</del>");
+
+  placeholders.forEach((value, index) => {
+    safe = safe.replace(`__CODE_${index}__`, value);
+  });
+  return safe;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function renderOllamaSettings() {
