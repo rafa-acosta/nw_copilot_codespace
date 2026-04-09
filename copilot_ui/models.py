@@ -123,6 +123,28 @@ class GeneratedAnswer:
 
 
 @dataclass(slots=True)
+class OllamaSettings:
+    """Current Ollama configuration and discovered local models."""
+
+    enabled: bool
+    base_url: str
+    chat_model: str
+    embedding_model: str
+    available_models: tuple[str, ...] = ()
+    last_error: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "enabled": self.enabled,
+            "base_url": self.base_url,
+            "chat_model": self.chat_model,
+            "embedding_model": self.embedding_model,
+            "available_models": list(self.available_models),
+            "last_error": self.last_error,
+        }
+
+
+@dataclass(slots=True)
 class AppSnapshot:
     """Serialized application state sent to the frontend."""
 
@@ -131,6 +153,7 @@ class AppSnapshot:
     retrieval_ready: bool
     chunk_count: int
     supported_types: tuple[str, ...]
+    ollama: OllamaSettings | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -139,4 +162,5 @@ class AppSnapshot:
             "retrieval_ready": self.retrieval_ready,
             "chunk_count": self.chunk_count,
             "supported_types": list(self.supported_types),
+            "ollama": self.ollama.to_dict() if self.ollama is not None else None,
         }

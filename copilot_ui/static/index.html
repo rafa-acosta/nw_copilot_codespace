@@ -23,11 +23,11 @@
           <button id="clear-documents-button" class="ghost-button">Clear All</button>
         </div>
         <label for="file-input" class="upload-dropzone" id="upload-dropzone">
-          <input id="file-input" type="file" multiple hidden>
+          <input id="file-input" type="file" accept=".txt,.pdf,.docx,.xlsx,.xls,.json,.cfg,.conf,.config" multiple hidden>
           <div class="upload-icon">+</div>
           <div>
             <strong>Load local files</strong>
-            <p>TXT, PDF, DOCX, XLSX, JSON, and Cisco configs</p>
+            <p>TXT, DOCX, XLSX, JSON, Cisco configs, and PDF when PyPDF2 is installed</p>
           </div>
         </label>
         <div class="status-grid">
@@ -41,6 +41,15 @@
           </div>
         </div>
         <div id="document-list" class="document-list"></div>
+      </section>
+
+      <section class="panel controls-panel">
+        <div class="panel-header">
+          <h2>Local Model</h2>
+        </div>
+        <p class="settings-note">
+          This workspace uses Ollama <strong>llama3.2:3b</strong> for both retrieval embeddings and answers.
+        </p>
       </section>
 
       <section class="panel controls-panel">

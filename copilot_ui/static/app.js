@@ -111,6 +111,9 @@ function renderMessages() {
     if (message.meta?.result_count !== undefined) {
       metaParts.push(`${message.meta.result_count} result(s)`);
     }
+    if (message.meta?.answer_model) {
+      metaParts.push(message.meta.answer_model);
+    }
     fragment.querySelector(".message-meta").textContent = metaParts.join(" • ");
 
     const citationList = fragment.querySelector(".citation-list");
@@ -157,15 +160,15 @@ function renderFilters() {
   sourceFilterList.dataset.initialized = "true";
 }
 
-async function mutate(path, body, successMessage) {
-  setStatus("Working...");
+async function mutate(path, body, successMessage, workingMessage = "Working...") {
+  setStatus(workingMessage);
   try {
     const payload = await api(path, {
       method: "POST",
       body: JSON.stringify(body || {}),
     });
     applyState(payload.state);
-    setStatus(successMessage);
+    setStatus(payload.message || successMessage || "Done.");
   } catch (error) {
     setStatus(error.message, true);
   }
@@ -173,7 +176,7 @@ async function mutate(path, body, successMessage) {
 
 function setStatus(message, isError = false) {
   statusLine.textContent = message;
-  statusLine.style.color = isError ? "#a03d32" : "";
+  statusLine.classList.toggle("error", isError);
 }
 
 async function sendMessage() {
@@ -184,7 +187,6 @@ async function sendMessage() {
 
   chatInput.value = "";
   autoresizeTextarea();
-  setStatus("Searching indexed documents...");
 
   await mutate(
     "/api/chat",
@@ -194,7 +196,8 @@ async function sendMessage() {
       top_k: Number(topKRange.value),
       source_types: Array.from(activeSourceTypes),
     },
-    "Answer ready."
+    "Answer ready.",
+    "Searching indexed documents..."
   );
 }
 
@@ -236,7 +239,7 @@ async function uploadFiles(fileList) {
       body: JSON.stringify({ files: payloadFiles }),
     });
     applyState(payload.state);
-    setStatus(`Indexed ${files.length} file(s).`);
+    setStatus(payload.message || `Indexed ${files.length} file(s).`);
   } catch (error) {
     setStatus(error.message, true);
   } finally {

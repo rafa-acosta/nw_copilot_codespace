@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import re
+from typing import Sequence
 
 from copilot_ui.models import ChatCitation, GeneratedAnswer
+from copilot_ui.ollama import OllamaClient
 from retrieval.models import RetrievalResponse, RetrievedChunk
 from retrieval.utils import contains_term, normalize_user_query, tokenize_preserving_technical
 
@@ -104,3 +106,81 @@ class GroundedAnswerGenerator(AnswerGenerator):
         scored.sort(key=lambda item: (item[0], len(item[1])), reverse=True)
         best = scored[0][1]
         return best[:240].strip()
+
+
+class OllamaAnswerGenerator(GroundedAnswerGenerator):
+    """Ollama-backed grounded answer synthesis."""
+
+    def __init__(self, client: OllamaClient | None = None, *, max_context_chunks: int = 4) -> None:
+        if max_context_chunks <= 0:
+            raise ValueError("max_context_chunks must be positive")
+        self.client = client or OllamaClient.from_env()
+        self.max_context_chunks = max_context_chunks
+
+    def generate(self, query: str, retrieval_response: RetrievalResponse) -> GeneratedAnswer:
+        if not retrieval_response.results:
+            return super().generate(query, retrieval_response)
+
+        selected_results = retrieval_response.results[: self.max_context_chunks]
+        citations = tuple(self._to_citation(query, result) for result in selected_results)
+        content = self.client.chat(
+            (
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a retrieval-augmented assistant. Answer only from the provided "
+                        "document context. If the answer is not supported by the context, say so clearly. "
+                        "Keep the response concise and technical, and cite source labels in square brackets."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": self._build_prompt(query, selected_results, citations),
+                },
+            )
+        )
+
+        return GeneratedAnswer(
+            content=content,
+            citations=citations,
+            meta={
+                "retrieval_mode": retrieval_response.retrieval_mode,
+                "latency_ms": retrieval_response.timings.total_ms,
+                "result_count": retrieval_response.top_k_results,
+                "answer_provider": "ollama",
+                "answer_model": self.client.chat_model,
+            },
+        )
+
+    def _build_prompt(
+        self,
+        query: str,
+        results: Sequence[RetrievedChunk],
+        citations: Sequence[ChatCitation],
+    ) -> str:
+        prompt_parts = [
+            f"Question: {query}",
+            "",
+            "Retrieved context:",
+        ]
+
+        for index, (result, citation) in enumerate(zip(results, citations), start=1):
+            prompt_parts.extend(
+                [
+                    f"Source {index}",
+                    f"Label: {citation.label}",
+                    f"Source type: {citation.source_type}",
+                    f"Relevance score: {citation.score:.3f}",
+                    "Chunk text:",
+                    result.text.strip(),
+                    "",
+                ]
+            )
+
+        prompt_parts.extend(
+            [
+                "Write a grounded answer using only the context above.",
+                "If the context is incomplete or conflicting, say that explicitly.",
+            ]
+        )
+        return "\n".join(prompt_parts).strip()

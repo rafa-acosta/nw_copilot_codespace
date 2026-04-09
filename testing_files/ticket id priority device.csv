@@ -1,0 +1,7 @@
+ticket_id,priority,device,issue,latency_ms,packet_loss,notes,status
+INC-1001,high,R1-CORE,"High CPU usage detected",,,"CPU spikes randomly",open
+INC-1002,medium,SW-22,"Packet loss between sites",120,10%,"Intermittent issue",open
+INC-1003,low,FW-EDGE,"Firewall rule mismatch",,,"Config drift detected",closed
+INC-1004,critical,R2-CORE,"BGP neighbor down",300,25%,"!!! urgent !!!",open
+INC-1005,,SW-11,"Port flapping",50,,,"unknown"
+INC-1006,high,,"Missing device name",,,,"open"

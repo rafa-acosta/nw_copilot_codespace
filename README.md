@@ -124,6 +124,27 @@ python examples/6_advanced_usage.py
 python examples/7_end_to_end_pipeline.py
 ```
 
+### Local Copilot GUI with Ollama
+
+The local GUI now expects Ollama for both embeddings and grounded answer generation.
+
+```bash
+ollama pull nomic-embed-text
+ollama pull llama3.1:8b
+
+ollama serve
+
+export OLLAMA_BASE_URL=http://127.0.0.1:11434
+export OLLAMA_EMBED_MODEL=nomic-embed-text
+export OLLAMA_CHAT_MODEL=llama3.1:8b
+
+python examples/9_launch_copilot_ui.py
+```
+
+If you use different local models, set `OLLAMA_EMBED_MODEL` and `OLLAMA_CHAT_MODEL` before launching the GUI.
+You can also change both models from the GUI itself through the new `Ollama Models` panel. Use `Refresh`
+after pulling a new model, then apply the new chat or embedding model directly in the browser.
+
 ---
 
 ## API Reference

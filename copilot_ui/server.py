@@ -62,7 +62,11 @@ class CopilotRequestHandler(BaseHTTPRequestHandler):
             if self.path == "/api/documents/upload":
                 files = [UploadedFilePayload.from_dict(item) for item in payload.get("files", [])]
                 state = self.service.add_uploaded_files(files, clear_existing=bool(payload.get("clear_existing")))
-                _json_response(self, HTTPStatus.OK, {"ok": True, "state": state.to_dict()})
+                _json_response(
+                    self,
+                    HTTPStatus.OK,
+                    {"ok": True, "state": state.to_dict(), "message": self.service.last_upload_message()},
+                )
                 return
             if self.path == "/api/documents/remove":
                 state = self.service.remove_document(str(payload.get("document_id", "")))

@@ -1,4 +1,4 @@
-"""Local embedding adapters for the GUI application."""
+"""Embedding adapters for the GUI application."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import hashlib
 import math
 from typing import Sequence
 
+from copilot_ui.ollama import OllamaClient
 from retrieval.embedders import CallableQueryEmbedder, QueryEmbedder
 from retrieval.utils import normalize_user_query, tokenize_preserving_technical
 
@@ -47,3 +48,19 @@ class HashingEmbeddingModel:
 
     def as_query_embedder(self) -> QueryEmbedder:
         return CallableQueryEmbedder(self.embed_text, expected_dimension=self.dimension)
+
+
+class OllamaEmbeddingModel:
+    """Embedding adapter backed by a local Ollama daemon."""
+
+    def __init__(self, client: OllamaClient | None = None) -> None:
+        self.client = client or OllamaClient.from_env()
+
+    def embed_text(self, text: str) -> tuple[float, ...]:
+        return self.client.embed_query(text)
+
+    def embed_documents(self, texts: Sequence[str]) -> list[tuple[float, ...]]:
+        return self.client.embed_documents(texts)
+
+    def as_query_embedder(self) -> QueryEmbedder:
+        return CallableQueryEmbedder(self.embed_text)
