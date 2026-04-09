@@ -15,9 +15,11 @@ Start here:
 ### 📖 **For Understanding Design**
 Deep dive:
 1. **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete technical guide
-2. Review [rag_data_ingestion/](rag_data_ingestion/) module organization
-3. Review [rag_processing/](rag_processing/) structure & pipeline
-3. Check design patterns section in ARCHITECTURE.md
+2. **[MASTER_PIPELINE_FLOW.md](MASTER_PIPELINE_FLOW.md)** - End-to-end flow for TXT, PDF, DOCX, XLSX, JSON, and Cisco configs
+3. Review [rag_data_ingestion/](rag_data_ingestion/) module organization
+4. Review [rag_processing/](rag_processing/) structure & pipeline
+5. Review [retrieval/](retrieval/) retrieval architecture and contracts
+6. Check design patterns section in ARCHITECTURE.md
 
 ### ✅ **For Verification**
 Proof:
@@ -27,9 +29,11 @@ Proof:
 
 ### 💻 **For Code & Examples**
 Practical:
-1. **[examples/](examples/)** - 7 working examples
+1. **[examples/](examples/)** - 9 working examples
 2. **[rag_data_ingestion/](rag_data_ingestion/)** - Main library
 3. **[rag_processing/](rag_processing/)** - Structure → chunk → metadata pipeline
+4. **[retrieval/](retrieval/)** - Query processing, dense/keyword/hybrid retrieval, reranking
+5. **[copilot_ui/](copilot_ui/)** - Local web GUI with chat, indexing, and retrieval controls
 
 ---
 
@@ -50,7 +54,7 @@ The main Python package with:
 - `*_loader.py` - Format-specific loaders (7 files)
 
 ### Examples: `examples/` (36 KB)
-7 complete, working examples:
+9 complete, working examples:
 1. `1_text_loading.py` - Text file processing
 2. `2_pdf_loading.py` - PDF extraction
 3. `3_web_loading.py` - Web scraping
@@ -58,10 +62,13 @@ The main Python package with:
 5. `5_json_and_config.py` - JSON & Cisco
 6. `6_advanced_usage.py` - Factory & batch
 7. `7_end_to_end_pipeline.py` - RAG workflow
+8. `8_retrieval_pipeline.py` - Retrieval integration workflow
+9. `9_launch_copilot_ui.py` - Launch the local copilot GUI
 
-### Documentation: 5 Guides (60 KB)
+### Documentation: 8 Guides (60 KB)
 - **README.md** (7 KB) - Quick start & API reference
 - **ARCHITECTURE.md** (14 KB) - Technical deep dive
+- **MASTER_PIPELINE_FLOW.md** - End-to-end master pipeline explanation
 - **QUICK_REFERENCE.md** (6 KB) - Lookup guide
 - **DELIVERABLES.md** (14 KB) - What was built
 - **IMPLEMENTATION_SUMMARY.md** (11 KB) - Project overview
@@ -80,6 +87,14 @@ Pipeline for structure extraction, semantic chunking, and metadata enrichment:
 - Models: `CleanDocument`, `StructuredDocument`, `StructuralNode`, `Chunk`, `Metadata`
 - Registry: `ProcessorRegistry` maps `source_type` → processors
 - Source-specific logic for text, PDF, web, DOCX, Excel, JSON, Cisco
+
+### Copilot UI: `copilot_ui/`
+Local web application for end-user interaction:
+- document upload and indexing
+- chat-style querying
+- retrieval mode and source-type controls
+- grounded answers with citations
+- local-only execution using the project retrieval stack
 
 ## 🎓 Learning Path
 
@@ -103,7 +118,7 @@ print('Cleaned text:', data.content[:100])
 ### Level 2: Understanding Loaders (30 minutes)
 ```bash
 # 1. Run all examples
-for i in {1..7}; do
+for i in {1..9}; do
     echo "Running example $i..."
     python examples/${i}_*.py 2>&1 | head -20
 done

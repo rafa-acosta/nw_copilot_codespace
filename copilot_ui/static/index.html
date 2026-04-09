@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NW Copilot</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand-card">
+        <div class="brand-mark">NC</div>
+        <div>
+          <h1>NW Copilot</h1>
+          <p>Local technical RAG workspace</p>
+        </div>
+      </div>
+
+      <section class="panel upload-panel">
+        <div class="panel-header">
+          <h2>Documents</h2>
+          <button id="clear-documents-button" class="ghost-button">Clear All</button>
+        </div>
+        <label for="file-input" class="upload-dropzone" id="upload-dropzone">
+          <input id="file-input" type="file" multiple hidden>
+          <div class="upload-icon">+</div>
+          <div>
+            <strong>Load local files</strong>
+            <p>TXT, PDF, DOCX, XLSX, JSON, and Cisco configs</p>
+          </div>
+        </label>
+        <div class="status-grid">
+          <div class="status-card">
+            <span class="status-label">Indexed docs</span>
+            <strong id="document-count">0</strong>
+          </div>
+          <div class="status-card">
+            <span class="status-label">Chunks</span>
+            <strong id="chunk-count">0</strong>
+          </div>
+        </div>
+        <div id="document-list" class="document-list"></div>
+      </section>
+
+      <section class="panel controls-panel">
+        <div class="panel-header">
+          <h2>Retrieval Controls</h2>
+          <button id="clear-chat-button" class="ghost-button">Reset Chat</button>
+        </div>
+        <label class="field">
+          <span>Retrieval mode</span>
+          <select id="mode-select">
+            <option value="hybrid">Hybrid</option>
+            <option value="dense">Dense</option>
+            <option value="keyword">Keyword</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Top-K results</span>
+          <div class="range-row">
+            <input id="top-k-range" type="range" min="1" max="8" value="4">
+            <strong id="top-k-value">4</strong>
+          </div>
+        </label>
+        <div class="field">
+          <span>Source filters</span>
+          <div id="source-filter-list" class="filter-list"></div>
+        </div>
+      </section>
+    </aside>
+
+    <main class="main-pane">
+      <header class="topbar">
+        <div>
+          <h2>Private Retrieval Copilot</h2>
+          <p id="readiness-indicator">No indexed documents yet</p>
+        </div>
+        <div class="topbar-badges">
+          <span class="badge badge-soft">Fully local</span>
+          <span class="badge badge-strong">Private</span>
+        </div>
+      </header>
+
+      <section id="empty-state" class="empty-state">
+        <div class="empty-card">
+          <h3>Ask questions across your private corpus</h3>
+          <p>
+            Load technical documents on the left, then query them here. The assistant will use
+            source-aware retrieval, show grounded matches, and preserve metadata for citations.
+          </p>
+        </div>
+      </section>
+
+      <section id="chat-scroll" class="chat-scroll">
+        <div id="message-list" class="message-list"></div>
+      </section>
+
+      <footer class="composer-shell">
+        <div class="composer-card">
+          <textarea
+            id="chat-input"
+            class="chat-input"
+            placeholder="Ask about a page, section, sheet, JSON path, VLAN, interface, or exact command..."
+            rows="1"
+          ></textarea>
+          <button id="send-button" class="primary-button">Send</button>
+        </div>
+        <div id="status-line" class="status-line">Ready when you are.</div>
+      </footer>
+    </main>
+  </div>
+
+  <template id="document-item-template">
+    <article class="document-item">
+      <div class="document-meta">
+        <strong class="document-name"></strong>
+        <span class="document-type"></span>
+      </div>
+      <div class="document-submeta">
+        <span class="document-chunks"></span>
+        <button class="ghost-button remove-document-button">Remove</button>
+      </div>
+    </article>
+  </template>
+
+  <template id="message-template">
+    <article class="message">
+      <div class="message-avatar"></div>
+      <div class="message-body">
+        <div class="message-role"></div>
+        <div class="message-content"></div>
+        <div class="message-meta"></div>
+        <div class="citation-list"></div>
+      </div>
+    </article>
+  </template>
+
+  <template id="citation-template">
+    <section class="citation-card">
+      <div class="citation-header">
+        <strong class="citation-label"></strong>
+        <span class="citation-score"></span>
+      </div>
+      <p class="citation-excerpt"></p>
+    </section>
+  </template>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
