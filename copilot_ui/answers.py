@@ -130,7 +130,8 @@ class OllamaAnswerGenerator(GroundedAnswerGenerator):
                     "content": (
                         "You are a retrieval-augmented assistant. Answer only from the provided "
                         "document context. If the answer is not supported by the context, say so clearly. "
-                        "Keep the response concise and technical, and cite source labels in square brackets."
+                        "Keep the response concise and technical, and cite source labels in square brackets. "
+                        "Do not expose hidden reasoning, thinking traces, or chain-of-thought."
                     ),
                 },
                 {
@@ -139,6 +140,7 @@ class OllamaAnswerGenerator(GroundedAnswerGenerator):
                 },
             )
         )
+        content = self._sanitize_answer_content(content)
 
         return GeneratedAnswer(
             content=content,
@@ -184,3 +186,8 @@ class OllamaAnswerGenerator(GroundedAnswerGenerator):
             ]
         )
         return "\n".join(prompt_parts).strip()
+
+    @staticmethod
+    def _sanitize_answer_content(content: str) -> str:
+        cleaned = re.sub(r"<think>.*?</think>\s*", "", content, flags=re.DOTALL | re.IGNORECASE).strip()
+        return cleaned or content.strip()

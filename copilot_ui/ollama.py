@@ -68,8 +68,8 @@ class OllamaClient:
 
         return cls(
             base_url=os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL),
-            chat_model=FIXED_OLLAMA_MODEL,
-            embedding_model=FIXED_OLLAMA_MODEL,
+            chat_model=os.getenv("OLLAMA_CHAT_MODEL", DEFAULT_OLLAMA_CHAT_MODEL),
+            embedding_model=os.getenv("OLLAMA_EMBED_MODEL", DEFAULT_OLLAMA_EMBED_MODEL),
             timeout_seconds=_positive_float_from_env(
                 "OLLAMA_TIMEOUT_SECONDS",
                 DEFAULT_OLLAMA_TIMEOUT_SECONDS,
@@ -108,6 +108,17 @@ class OllamaClient:
             }
         )
         return tuple(names)
+
+    def pull_model(self, model_name: str) -> None:
+        """Download a model from the Ollama library into the local daemon."""
+
+        if not model_name.strip():
+            raise ValueError("Ollama model name is required")
+
+        self._request_json(
+            "/api/pull",
+            payload={"model": model_name.strip(), "stream": False},
+        )
 
     def embed_documents(self, texts: Sequence[str]) -> list[tuple[float, ...]]:
         """Embed documents with Ollama, falling back for older daemon versions."""
@@ -183,8 +194,8 @@ class OllamaClient:
             )
         except requests.exceptions.RequestException as exc:
             raise OllamaError(
-                "Could not reach Ollama. Start `ollama serve` and make sure the required "
-                f"model `{FIXED_OLLAMA_MODEL}` is available at {self.base_url}."
+                "Could not reach Ollama. Start `ollama serve` and make sure the configured "
+                f"models `{self.chat_model}` and `{self.embedding_model}` are available at {self.base_url}."
             ) from exc
 
         if allow_404 and response.status_code == 404:

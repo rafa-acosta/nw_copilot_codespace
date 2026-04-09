@@ -78,15 +78,21 @@ class CopilotApplicationServiceTests(unittest.TestCase):
         self.assertFalse(updated.retrieval_ready)
 
     def test_upload_keeps_text_files_when_pdf_dependency_is_missing(self) -> None:
-        snapshot = self.service.add_uploaded_files(
-            [
-                encode_text_payload("notes.txt", "Project note about hurricane evacuation procedures."),
-                UploadedFilePayload(
-                    name="missing_dependency.pdf",
-                    content_base64=base64.b64encode(b"%PDF-1.4\n% test pdf").decode("utf-8"),
-                ),
-            ]
-        )
+        class MissingPdfLoader:
+            def load(self, source: str, **kwargs):
+                del source, kwargs
+                raise ImportError("PyPDF2 is required for PDF loading. Install with: pip install PyPDF2")
+
+        with patch("copilot_ui.loaders.PDFLoader", return_value=MissingPdfLoader()):
+            snapshot = self.service.add_uploaded_files(
+                [
+                    encode_text_payload("notes.txt", "Project note about hurricane evacuation procedures."),
+                    UploadedFilePayload(
+                        name="missing_dependency.pdf",
+                        content_base64=base64.b64encode(b"%PDF-1.4\n% test pdf").decode("utf-8"),
+                    ),
+                ]
+            )
 
         self.assertEqual(len(snapshot.documents), 1)
         self.assertEqual(snapshot.documents[0].filename, "notes.txt")
@@ -123,21 +129,33 @@ class FakeOllamaClient:
         self.chat_model = chat_model
         self.embedding_model = embedding_model
         self.timeout_seconds = 30.0
-        self.available_models = available_models or (
-            FIXED_OLLAMA_MODEL,
-            "phi3.5:latest",
+        self.available_models = list(
+            available_models
+            or (
+                FIXED_OLLAMA_MODEL,
+                "qwen2.5-coder:7b-instruct",
+                "mxbai-embed-large",
+            )
         )
+        self.pulled_models: list[str] = []
 
     def with_models(self, *, chat_model: str | None = None, embedding_model: str | None = None):
-        return FakeOllamaClient(
+        clone = FakeOllamaClient(
             base_url=self.base_url,
             chat_model=chat_model or self.chat_model,
             embedding_model=embedding_model or self.embedding_model,
-            available_models=self.available_models,
+            available_models=tuple(self.available_models),
         )
+        clone.pulled_models = list(self.pulled_models)
+        return clone
 
     def list_models(self) -> tuple[str, ...]:
-        return tuple(self.available_models)
+        return tuple(sorted(self.available_models))
+
+    def pull_model(self, model_name: str) -> None:
+        if model_name not in self.available_models:
+            self.available_models.append(model_name)
+        self.pulled_models.append(model_name)
 
     def embed_documents(self, texts):
         seed = float(sum(ord(char) for char in self.embedding_model) % 11 + 1)
@@ -155,55 +173,74 @@ class FakeOllamaClient:
 
 
 class OllamaIntegrationTests(unittest.TestCase):
-    def test_from_env_uses_fixed_llama_model(self) -> None:
+    def test_from_env_uses_configured_models(self) -> None:
         with patch.dict(
             os.environ,
             {
-                "OLLAMA_CHAT_MODEL": "should-not-be-used",
-                "OLLAMA_EMBED_MODEL": "should-not-be-used",
+                "OLLAMA_CHAT_MODEL": "phi4-mini-reasoning:latest",
+                "OLLAMA_EMBED_MODEL": "qwen2.5-coder:7b-instruct",
             },
             clear=False,
         ):
             client = OllamaClient.from_env()
 
-        self.assertEqual(client.chat_model, FIXED_OLLAMA_MODEL)
-        self.assertEqual(client.embedding_model, FIXED_OLLAMA_MODEL)
+        self.assertEqual(client.chat_model, "phi4-mini-reasoning:latest")
+        self.assertEqual(client.embedding_model, "qwen2.5-coder:7b-instruct")
 
-    def test_snapshot_reports_missing_fixed_model(self) -> None:
+    def test_snapshot_exposes_available_ollama_models(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             service = CopilotApplicationService(
                 storage_dir=temp_dir,
-                ollama_client=FakeOllamaClient(available_models=("phi3.5:latest",)),
+                ollama_client=FakeOllamaClient(),
             )
 
             snapshot = service.snapshot()
 
         self.assertIsNotNone(snapshot.ollama)
+        self.assertIn(FIXED_OLLAMA_MODEL, snapshot.ollama.available_models)
+        self.assertIn("qwen2.5-coder:7b-instruct", snapshot.ollama.available_models)
         self.assertEqual(snapshot.ollama.chat_model, FIXED_OLLAMA_MODEL)
         self.assertEqual(snapshot.ollama.embedding_model, FIXED_OLLAMA_MODEL)
-        self.assertIn(FIXED_OLLAMA_MODEL, snapshot.ollama.last_error)
 
-    def test_txt_upload_and_answer_uses_fixed_model(self) -> None:
+    def test_update_ollama_settings_reindexes_existing_documents(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             service = CopilotApplicationService(
                 storage_dir=temp_dir,
                 ollama_client=FakeOllamaClient(),
             )
             snapshot = service.add_uploaded_files(
-                [
-                    encode_text_payload(
-                        "notes.txt",
-                        "Backup window starts every Sunday at 02:00 and ends at 03:00.",
-                    )
-                ]
+                [encode_text_payload("notes.txt", "private note about vlan 10 and interface status")]
             )
-            answer_state = service.ask("When does the backup window start?")
+            before_embedding = service._records[0].embedding
+            document_id = snapshot.documents[0].document_id
 
-        self.assertTrue(snapshot.retrieval_ready)
-        self.assertEqual(snapshot.documents[0].source_type, "text_file")
-        self.assertEqual(answer_state.messages[-1].meta["answer_model"], FIXED_OLLAMA_MODEL)
-        self.assertTrue(answer_state.messages[-1].citations)
-        self.assertEqual(answer_state.messages[-1].citations[0].source_type, "text_file")
+            updated = service.update_ollama_settings(
+                chat_model="qwen2.5-coder:7b-instruct",
+                embedding_model="mxbai-embed-large",
+            )
+
+            after_embedding = service._records[0].embedding
+
+        self.assertEqual(updated.documents[0].document_id, document_id)
+        self.assertNotEqual(before_embedding, after_embedding)
+        self.assertEqual(updated.ollama.chat_model, "qwen2.5-coder:7b-instruct")
+        self.assertEqual(updated.ollama.embedding_model, "mxbai-embed-large")
+        self.assertTrue(updated.retrieval_ready)
+
+    def test_update_ollama_settings_pulls_missing_models(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            service = CopilotApplicationService(
+                storage_dir=temp_dir,
+                ollama_client=FakeOllamaClient(available_models=(FIXED_OLLAMA_MODEL,)),
+            )
+
+            updated = service.update_ollama_settings(
+                chat_model="phi4-mini-reasoning:latest",
+                embedding_model=FIXED_OLLAMA_MODEL,
+            )
+
+        self.assertEqual(updated.ollama.chat_model, "phi4-mini-reasoning:latest")
+        self.assertIn("phi4-mini-reasoning:latest", updated.ollama.available_models)
 
     def test_ollama_embedding_model_uses_batch_embed_endpoint(self) -> None:
         session = Mock()
@@ -223,6 +260,21 @@ class OllamaIntegrationTests(unittest.TestCase):
         self.assertEqual(
             session.request.call_args.kwargs["json"],
             {"model": client.embedding_model, "input": ["alpha", "beta"]},
+        )
+
+    def test_ollama_pull_model_uses_pull_endpoint(self) -> None:
+        session = Mock()
+        session.request.return_value = FakeResponse({"status": "success"})
+        client = OllamaClient(session=session)
+
+        client.pull_model("phi4-mini-reasoning:latest")
+
+        session.request.assert_called_once()
+        self.assertEqual(session.request.call_args.args[0], "POST")
+        self.assertTrue(session.request.call_args.args[1].endswith("/api/pull"))
+        self.assertEqual(
+            session.request.call_args.kwargs["json"],
+            {"model": "phi4-mini-reasoning:latest", "stream": False},
         )
 
     def test_ollama_embedding_model_falls_back_to_legacy_endpoint(self) -> None:
@@ -256,7 +308,10 @@ class OllamaIntegrationTests(unittest.TestCase):
 
             def chat(self, messages, *, temperature: float = 0.1) -> str:
                 self.messages = tuple(messages)
-                return "The interface is GigabitEthernet1/0/24 and it is up. [device.json • device.interfaces]"
+                return (
+                    "<think>Reasoning about the interface status.</think>\n"
+                    "The interface is GigabitEthernet1/0/24 and it is up. [device.json • device.interfaces]"
+                )
 
         retrieval_response = RetrievalResponse(
             original_query="What interface is up?",
@@ -283,6 +338,7 @@ class OllamaIntegrationTests(unittest.TestCase):
         answer = generator.generate("What interface is up?", retrieval_response)
 
         self.assertIn("GigabitEthernet1/0/24", answer.content)
+        self.assertNotIn("<think>", answer.content)
         self.assertEqual(answer.meta["answer_provider"], "ollama")
         self.assertEqual(answer.meta["answer_model"], FIXED_OLLAMA_MODEL)
         self.assertEqual(answer.citations[0].label, "device.json • device.interfaces")

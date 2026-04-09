@@ -90,6 +90,32 @@ class CopilotRequestHandler(BaseHTTPRequestHandler):
                 state = self.service.clear_chat()
                 _json_response(self, HTTPStatus.OK, {"ok": True, "state": state.to_dict()})
                 return
+            if self.path == "/api/settings/ollama":
+                state = self.service.update_ollama_settings(
+                    chat_model=str(payload.get("chat_model", "")).strip() or None,
+                    embedding_model=str(payload.get("embedding_model", "")).strip() or None,
+                )
+                _json_response(
+                    self,
+                    HTTPStatus.OK,
+                    {
+                        "ok": True,
+                        "state": state.to_dict(),
+                        "message": (
+                            "Ollama models updated. If you typed a model name that was not installed, "
+                            "the app pulled it first."
+                        ),
+                    },
+                )
+                return
+            if self.path == "/api/settings/ollama/refresh":
+                state = self.service.refresh_ollama_models()
+                _json_response(
+                    self,
+                    HTTPStatus.OK,
+                    {"ok": True, "state": state.to_dict(), "message": "Refreshed local Ollama models."},
+                )
+                return
             _json_response(self, HTTPStatus.NOT_FOUND, {"ok": False, "error": "Route not found"})
         except Exception as exc:  # noqa: BLE001
             _json_response(

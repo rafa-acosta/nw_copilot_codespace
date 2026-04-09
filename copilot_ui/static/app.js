@@ -1,9 +1,12 @@
+const CUSTOM_MODEL_VALUE = "__custom__";
+
 const state = {
   documents: [],
   messages: [],
   retrieval_ready: false,
   chunk_count: 0,
   supported_types: [],
+  ollama: null,
 };
 
 const documentList = document.getElementById("document-list");
@@ -24,6 +27,13 @@ const documentCount = document.getElementById("document-count");
 const chunkCount = document.getElementById("chunk-count");
 const clearDocumentsButton = document.getElementById("clear-documents-button");
 const clearChatButton = document.getElementById("clear-chat-button");
+const refreshOllamaButton = document.getElementById("refresh-ollama-button");
+const applyOllamaButton = document.getElementById("apply-ollama-button");
+const chatModelSelect = document.getElementById("chat-model-select");
+const embeddingModelSelect = document.getElementById("embedding-model-select");
+const chatModelCustom = document.getElementById("chat-model-custom");
+const embeddingModelCustom = document.getElementById("embedding-model-custom");
+const ollamaStatus = document.getElementById("ollama-status");
 
 const activeSourceTypes = new Set();
 
@@ -50,10 +60,12 @@ function applyState(nextState) {
   state.retrieval_ready = nextState.retrieval_ready;
   state.chunk_count = nextState.chunk_count;
   state.supported_types = nextState.supported_types;
+  state.ollama = nextState.ollama;
 
   renderDocuments();
   renderMessages();
   renderFilters();
+  renderOllamaSettings();
 
   documentCount.textContent = String(state.documents.length);
   chunkCount.textContent = String(state.chunk_count);
@@ -160,6 +172,84 @@ function renderFilters() {
   sourceFilterList.dataset.initialized = "true";
 }
 
+function renderOllamaSettings() {
+  const ollama = state.ollama;
+  if (!ollama) {
+    chatModelSelect.innerHTML = "";
+    embeddingModelSelect.innerHTML = "";
+    chatModelSelect.disabled = true;
+    embeddingModelSelect.disabled = true;
+    chatModelCustom.hidden = true;
+    embeddingModelCustom.hidden = true;
+    applyOllamaButton.disabled = true;
+    refreshOllamaButton.disabled = true;
+    setInlineStatus(ollamaStatus, "Ollama configuration is unavailable in this session.", true);
+    return;
+  }
+
+  chatModelSelect.disabled = false;
+  embeddingModelSelect.disabled = false;
+  applyOllamaButton.disabled = false;
+  refreshOllamaButton.disabled = false;
+
+  populateModelSelect(chatModelSelect, ollama.available_models || [], ollama.chat_model);
+  populateModelSelect(embeddingModelSelect, ollama.available_models || [], ollama.embedding_model);
+
+  chatModelCustom.value = ollama.chat_model || "";
+  embeddingModelCustom.value = ollama.embedding_model || "";
+  syncCustomModelInput(chatModelSelect, chatModelCustom, ollama.chat_model);
+  syncCustomModelInput(embeddingModelSelect, embeddingModelCustom, ollama.embedding_model);
+
+  if (ollama.last_error) {
+    setInlineStatus(ollamaStatus, ollama.last_error, true);
+    return;
+  }
+
+  const modelCount = (ollama.available_models || []).length;
+  const suffix = modelCount === 1 ? "" : "s";
+  setInlineStatus(
+    ollamaStatus,
+    `Detected ${modelCount} installed model${suffix} at ${ollama.base_url}.`,
+    false
+  );
+}
+
+function populateModelSelect(selectElement, models, currentValue) {
+  const installedModels = Array.isArray(models) ? models : [];
+  selectElement.innerHTML = "";
+
+  for (const modelName of installedModels) {
+    const option = document.createElement("option");
+    option.value = modelName;
+    option.textContent = modelName;
+    selectElement.appendChild(option);
+  }
+
+  const customOption = document.createElement("option");
+  customOption.value = CUSTOM_MODEL_VALUE;
+  customOption.textContent = "Custom model...";
+  selectElement.appendChild(customOption);
+
+  if (currentValue && installedModels.includes(currentValue)) {
+    selectElement.value = currentValue;
+  } else {
+    selectElement.value = CUSTOM_MODEL_VALUE;
+  }
+}
+
+function syncCustomModelInput(selectElement, inputElement, currentValue = "") {
+  const isCustom = selectElement.value === CUSTOM_MODEL_VALUE;
+  inputElement.hidden = !isCustom;
+  if (isCustom && !inputElement.value.trim()) {
+    inputElement.value = currentValue || "";
+  }
+}
+
+function setInlineStatus(element, message, isError = false) {
+  element.textContent = message;
+  element.classList.toggle("error", isError);
+}
+
 async function mutate(path, body, successMessage, workingMessage = "Working...") {
   setStatus(workingMessage);
   try {
@@ -177,6 +267,46 @@ async function mutate(path, body, successMessage, workingMessage = "Working...")
 function setStatus(message, isError = false) {
   statusLine.textContent = message;
   statusLine.classList.toggle("error", isError);
+}
+
+function selectedModelValue(selectElement, inputElement) {
+  if (selectElement.value === CUSTOM_MODEL_VALUE) {
+    return inputElement.value.trim();
+  }
+  return selectElement.value.trim();
+}
+
+async function applyOllamaSettings() {
+  const chatModel = selectedModelValue(chatModelSelect, chatModelCustom);
+  const embeddingModel = selectedModelValue(embeddingModelSelect, embeddingModelCustom);
+
+  if (!chatModel) {
+    setStatus("Choose a chat model before applying settings.", true);
+    return;
+  }
+  if (!embeddingModel) {
+    setStatus("Choose an embedding model before applying settings.", true);
+    return;
+  }
+
+  await mutate(
+    "/api/settings/ollama",
+    {
+      chat_model: chatModel,
+      embedding_model: embeddingModel,
+    },
+    "Ollama models updated.",
+    "Updating Ollama models..."
+  );
+}
+
+async function refreshOllamaModels() {
+  await mutate(
+    "/api/settings/ollama/refresh",
+    {},
+    "Refreshed local Ollama models.",
+    "Refreshing Ollama models..."
+  );
 }
 
 async function sendMessage() {
@@ -248,6 +378,12 @@ async function uploadFiles(fileList) {
 }
 
 sendButton.addEventListener("click", sendMessage);
+applyOllamaButton.addEventListener("click", applyOllamaSettings);
+refreshOllamaButton.addEventListener("click", refreshOllamaModels);
+chatModelSelect.addEventListener("change", () => syncCustomModelInput(chatModelSelect, chatModelCustom, state.ollama?.chat_model));
+embeddingModelSelect.addEventListener("change", () =>
+  syncCustomModelInput(embeddingModelSelect, embeddingModelCustom, state.ollama?.embedding_model)
+);
 chatInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();

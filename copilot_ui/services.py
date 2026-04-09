@@ -98,6 +98,7 @@ class CopilotApplicationService:
 
         if self.ollama_client is not None:
             self._refresh_ollama_models_locked(suppress_errors=True)
+            self._reconcile_ollama_models_locked()
 
     def add_uploaded_files(self, payloads: list[UploadedFilePayload], *, clear_existing: bool = False) -> AppSnapshot:
         with self._lock:
@@ -155,6 +156,64 @@ class CopilotApplicationService:
     def clear_chat(self) -> AppSnapshot:
         with self._lock:
             self._messages.clear()
+            return self._snapshot_locked()
+
+    def refresh_ollama_models(self) -> AppSnapshot:
+        with self._lock:
+            self._refresh_ollama_models_locked()
+            self._reconcile_ollama_models_locked()
+            return self._snapshot_locked()
+
+    def update_ollama_settings(
+        self,
+        *,
+        chat_model: str | None = None,
+        embedding_model: str | None = None,
+    ) -> AppSnapshot:
+        with self._lock:
+            if self.ollama_client is None:
+                raise ValueError("Ollama settings are unavailable for the current backend configuration")
+
+            next_chat_model = (chat_model or self.ollama_client.chat_model).strip()
+            next_embedding_model = (embedding_model or self.ollama_client.embedding_model).strip()
+            if not next_chat_model:
+                raise ValueError("Chat model is required")
+            if not next_embedding_model:
+                raise ValueError("Embedding model is required")
+
+            self._refresh_ollama_models_locked(suppress_errors=True)
+            pulled_models = []
+            for model_name in dict.fromkeys((next_chat_model, next_embedding_model)):
+                if self._ensure_model_available_locked(model_name):
+                    pulled_models.append(model_name)
+
+            next_client = self.ollama_client.with_models(
+                chat_model=next_chat_model,
+                embedding_model=next_embedding_model,
+            )
+            next_embedding_adapter = OllamaEmbeddingModel(client=next_client)
+            next_answer_generator = OllamaAnswerGenerator(client=next_client)
+            embedding_changed = next_embedding_model != self.ollama_client.embedding_model
+            chat_changed = next_chat_model != self.ollama_client.chat_model
+
+            if embedding_changed and self._documents:
+                rebuilt_records, rebuilt_documents = self._reindex_documents_with_model_locked(next_embedding_adapter)
+                self._records = rebuilt_records
+                self._documents = rebuilt_documents
+                self._rebuild_retrieval_service_with_embedder(next_embedding_adapter)
+            elif embedding_changed and self._records:
+                self._rebuild_retrieval_service_with_embedder(next_embedding_adapter)
+
+            self.embedding_model = next_embedding_adapter
+            self.answer_generator = next_answer_generator
+            self.ollama_client = next_client
+            self._refresh_ollama_models_locked(suppress_errors=True)
+
+            if pulled_models:
+                pulled_summary = ", ".join(pulled_models)
+                self._last_upload_message = f"Pulled Ollama model(s): {pulled_summary}"
+            elif chat_changed or embedding_changed:
+                self._last_upload_message = None
             return self._snapshot_locked()
 
     def ask(self, message: str, options: QueryOptions | None = None) -> AppSnapshot:
@@ -263,14 +322,54 @@ class CopilotApplicationService:
             raise
 
         self._ollama_available_models = models
-        if FIXED_OLLAMA_MODEL in models:
+        if models:
             self._ollama_last_error = None
         else:
             self._ollama_last_error = (
-                f'Required Ollama model "{FIXED_OLLAMA_MODEL}" is not installed. '
-                f"Run `ollama pull {FIXED_OLLAMA_MODEL}`."
+                f'No local Ollama models were found. Pull one with `ollama pull {FIXED_OLLAMA_MODEL}`.'
             )
         return models
+
+    def _reconcile_ollama_models_locked(self) -> None:
+        if self.ollama_client is None or not self._ollama_available_models:
+            return
+
+        next_chat_model = self.ollama_client.chat_model
+        next_embedding_model = self.ollama_client.embedding_model
+        if next_chat_model not in self._ollama_available_models:
+            next_chat_model = self._choose_chat_fallback(self._ollama_available_models)
+        if next_embedding_model not in self._ollama_available_models:
+            next_embedding_model = self._choose_embedding_fallback(self._ollama_available_models)
+
+        if (
+            next_chat_model == self.ollama_client.chat_model
+            and next_embedding_model == self.ollama_client.embedding_model
+        ):
+            return
+
+        self.ollama_client = self.ollama_client.with_models(
+            chat_model=next_chat_model,
+            embedding_model=next_embedding_model,
+        )
+        if isinstance(self.embedding_model, OllamaEmbeddingModel):
+            self.embedding_model = OllamaEmbeddingModel(client=self.ollama_client)
+        if isinstance(self.answer_generator, OllamaAnswerGenerator):
+            self.answer_generator = OllamaAnswerGenerator(client=self.ollama_client)
+
+    def _ensure_model_available_locked(self, model_name: str) -> bool:
+        if not model_name.strip():
+            raise ValueError("Ollama model name is required")
+        if self.ollama_client is None:
+            raise ValueError("Ollama settings are unavailable for the current backend configuration")
+
+        if model_name in self._ollama_available_models:
+            return False
+
+        self.ollama_client.pull_model(model_name)
+        self._refresh_ollama_models_locked()
+        if model_name not in self._ollama_available_models:
+            raise ValueError(f'Ollama model "{model_name}" could not be loaded from the local Ollama repository.')
+        return True
 
     def _index_document_from_path(
         self,
@@ -331,6 +430,16 @@ class CopilotApplicationService:
             config=self.retrieval_config,
         )
 
+    def _rebuild_retrieval_service_with_embedder(self, embedding_model: OllamaEmbeddingModel) -> None:
+        if not self._records:
+            self._retrieval_service = None
+            return
+        self._retrieval_service = build_retrieval_service(
+            self._records,
+            query_embedder=embedding_model.as_query_embedder(),
+            config=self.retrieval_config,
+        )
+
     def _clear_documents_locked(self) -> None:
         for indexed in self._documents.values():
             path = Path(indexed.temp_path)
@@ -339,6 +448,26 @@ class CopilotApplicationService:
         self._documents.clear()
         self._records.clear()
         self._retrieval_service = None
+
+    def _reindex_documents_with_model_locked(
+        self,
+        embedding_model: OllamaEmbeddingModel,
+    ) -> tuple[list, dict[str, IndexedDocument]]:
+        rebuilt_records = []
+        rebuilt_documents: dict[str, IndexedDocument] = {}
+        current_documents = list(self._documents.values())
+
+        for indexed in current_documents:
+            summary, indexed_document, stored_chunks = self._index_document_from_path(
+                file_path=Path(indexed.temp_path),
+                display_name=indexed.summary.filename,
+                existing_summary=indexed.summary,
+                embedding_model=embedding_model,
+            )
+            rebuilt_records.extend(stored_chunks)
+            rebuilt_documents[summary.document_id] = indexed_document
+
+        return rebuilt_records, rebuilt_documents
 
     @staticmethod
     def _resolve_ollama_client(
@@ -356,6 +485,58 @@ class CopilotApplicationService:
         if embedding_model is None and answer_generator is None:
             return OllamaClient.from_env()
         return None
+
+    @staticmethod
+    def _choose_chat_fallback(models: tuple[str, ...]) -> str:
+        ranked = sorted(models, key=lambda model: CopilotApplicationService._chat_model_rank(model), reverse=True)
+        return ranked[0]
+
+    @staticmethod
+    def _choose_embedding_fallback(models: tuple[str, ...]) -> str:
+        ranked = sorted(models, key=lambda model: CopilotApplicationService._embedding_model_rank(model), reverse=True)
+        return ranked[0]
+
+    @staticmethod
+    def _chat_model_rank(model_name: str) -> tuple[int, int, str]:
+        lowered = model_name.casefold()
+        score = 0
+        if "llama" in lowered:
+            score += 50
+        if "qwen" in lowered:
+            score += 45
+        if "phi" in lowered:
+            score += 40
+        if "coder" in lowered:
+            score += 10
+        if "instruct" in lowered:
+            score += 5
+        return (score, -len(model_name), model_name)
+
+    @staticmethod
+    def _embedding_model_rank(model_name: str) -> tuple[int, int, str]:
+        lowered = model_name.casefold()
+        score = 0
+        preferred_terms = (
+            "embed",
+            "embedding",
+            "nomic",
+            "mxbai",
+            "bge",
+            "e5",
+            "snowflake",
+            "arctic",
+        )
+        if any(term in lowered for term in preferred_terms):
+            score += 100
+        if "qwen" in lowered:
+            score += 40
+        if "phi" in lowered:
+            score += 35
+        if "llama" in lowered:
+            score += 30
+        if "coder" in lowered:
+            score += 5
+        return (score, -len(model_name), model_name)
 
     @staticmethod
     def _summarize_sources(retrieval_response) -> dict[str, int]:

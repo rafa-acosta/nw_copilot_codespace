@@ -45,11 +45,38 @@
 
       <section class="panel controls-panel">
         <div class="panel-header">
-          <h2>Local Model</h2>
+          <h2>Ollama Models</h2>
+          <button id="refresh-ollama-button" class="ghost-button">Refresh</button>
         </div>
+        <label class="field">
+          <span>Chat model</span>
+          <select id="chat-model-select"></select>
+          <input
+            id="chat-model-custom"
+            class="model-custom-input"
+            type="text"
+            placeholder="Installed or Ollama library model name"
+            hidden
+          >
+        </label>
+        <label class="field">
+          <span>Embedding model</span>
+          <select id="embedding-model-select"></select>
+          <input
+            id="embedding-model-custom"
+            class="model-custom-input"
+            type="text"
+            placeholder="Installed or Ollama library model name"
+            hidden
+          >
+        </label>
         <p class="settings-note">
-          This workspace uses Ollama <strong>llama3.2:3b</strong> for both retrieval embeddings and answers.
+          Choose from installed models, or type any Ollama library model name. If it is not installed yet,
+          <strong>Apply Models</strong> will ask Ollama to pull it first. Changing the embedding model rebuilds
+          the current index so retrieval stays aligned.
         </p>
+        <button id="apply-ollama-button" class="primary-button panel-button">Apply Models</button>
+        <div id="ollama-status" class="status-line panel-status"></div>
       </section>
 
       <section class="panel controls-panel">
