@@ -1,0 +1,1511 @@
+Last login: Sun Jan 11 12:34:42 2026 from 138.35.8.12
++---------------------------------------------------------------------+
+|                                                                     |
+|  Use of this network is restricted to authorized users only. User   |
+|  activity may be monitored and/or recorded. Anyone using this       |
+|  network expressly consents to such monitoring and/or recording.    |
+|                                                                     |
+|  BE ADVISED: if possible criminal activity is detected, these       |
+|  records, along with certain personal information, may be provided  |
+|  to law enforcement officials.                                      |
+|                                                                     |
++---------------------------------------------------------------------+
+
+idajmpl02 ~ $ ssh -l Net0pscr20 wlc-kof-mex-terr-wc01.net.sa.kof.ccf.ssn.hp.com                                                                         
+ Unauthorized Access Prohibited !!! Access only if you have explicity Coca Cola Femsa Authorization Local_Pass:
+WLC-KOF-MEX-TERR-WC01 line 2 
+
+
+
+WLC-KOF-MEX-TERR-WC01>ena
+Local_Pass:
+WLC-KOF-MEX-TERR-WC01#show runnin | i source
+ ip radius source-interface Vlan198
+ ip radius source-interface Vlan198
+ ip radius source-interface Vlan198
+ ip tacacs source-interface GigabitEthernet0
+ match ipv4 source address
+ match transport source-port
+ip ftp source-interface GigabitEthernet0
+ip tftp source-interface GigabitEthernet0
+ip http client source-interface Vlan198
+ip ssh source-interface GigabitEthernet0
+ip tacacs source-interface GigabitEthernet0 
+ip radius source-interface Vlan198 
+logging source-interface Vlan198
+ntp source GigabitEthernet0
+ source-ip-address "10.142.99.250"
+ap tag-source-priority 2 source filter
+ap tag-source-priority 3 source ap
+WLC-KOF-MEX-TERR-WC01#ter  
+WLC-KOF-MEX-TERR-WC01#terminal l
+WLC-KOF-MEX-TERR-WC01#terminal le
+WLC-KOF-MEX-TERR-WC01#terminal length 0
+WLC-KOF-MEX-TERR-WC01#sh ru
+WLC-KOF-MEX-TERR-WC01#sh running-config 
+Building configuration...
+
+Current configuration : 53971 bytes
+!
+! Last configuration change at 15:28:23 CST Fri Jan 9 2026 by Net0psCR20
+! NVRAM config last updated at 17:27:00 CST Fri Jan 2 2026 by Net0psCR20
+!
+version 17.12
+service nagle
+service tcp-keepalives-in
+service tcp-keepalives-out
+service timestamps debug datetime msec localtime show-timezone
+service timestamps log datetime msec localtime show-timezone
+service password-encryption
+service linenumber
+service sequence-numbers
+service call-home
+platform qfp utilization monitor load 80
+platform punt-keepalive disable-kernel-core
+platform qos marker-statistics
+platform qos match-statistics per-filter
+platform qos match-statistics per-ace
+!
+hostname WLC-KOF-MEX-TERR-WC01
+!
+boot-start-marker
+boot system bootflash:packages.conf
+boot-end-marker
+!
+!
+vrf definition Mgmt-intf
+ !
+ address-family ipv4
+ exit-address-family
+ !
+ address-family ipv6
+ exit-address-family
+!
+logging buffered 500000
+aaa new-model
+!
+!
+aaa group server radius RADIUS_SERVER_GROUP_KOF_MEX_NPS
+ server name RADIUS_SERVER_KOF_MEX_01
+ server name RADIUS_SERVER_KOF_MEX_02
+ ip radius source-interface Vlan198
+ deadtime 5
+!
+aaa group server radius TERRA-MET-ISE
+ server name RADIUS_SERVER_TERRA_ISE
+ ip radius source-interface Vlan198
+ deadtime 5
+!
+aaa group server radius Radiustemp
+ server name RADIUS_SERVER_KOF_MEX_01
+ ip radius source-interface Vlan198
+ deadtime 5
+!
+aaa group server tacacs+ DXC-GNTA-TACACS
+ server name DXC-GNTA-TACACS-01
+ server name DXC-GNTA-TACACS-02
+ ip tacacs source-interface GigabitEthernet0
+!
+aaa authentication banner ^C Unauthorized Access Prohibited !!! Access only if you have explicity Coca Cola Femsa Authorization ^C
+aaa authentication password-prompt Local_Pass:
+aaa authentication username-prompt Local_User:
+aaa authentication login Terra-Guest-Local-Auth local
+aaa authentication login Terra-Guest-ISE-Auth group TERRA-MET-ISE
+aaa authentication dot1x KOF-MX-AAA-AUTH-NPS-01 group RADIUS_SERVER_GROUP_KOF_MEX_NPS
+aaa authentication dot1x TERRA-MET-ISE group TERRA-MET-ISE
+aaa authentication dot1x Kmovtemp group Radiustemp
+aaa authorization network AAA-ISE-AUTHOR group TERRA-MET-ISE 
+aaa accounting identity AAA-ISE-ACCOUN start-stop group TERRA-MET-ISE
+!
+!
+aaa server radius dynamic-author
+ client 10.142.50.53
+ client 10.142.50.36
+ client 10.142.98.82 server-key 7 032F0B2D2B5C396C7A5A0B1743115B18506705773F70022B3556
+!
+aaa session-id common
+clock timezone CST -6 0
+!
+!
+!
+!
+!
+!
+!
+ip name-server 10.142.50.31 10.142.50.36
+ip domain name kof.com.mx
+!
+!
+!
+no ip igmp snooping vlan 346
+login on-failure log
+login on-success log
+!
+!
+!
+!
+!
+!
+!
+subscriber templating
+vtp mode off
+! 
+! 
+! 
+! 
+!
+!
+flow record WLC-TERRA
+ description IPv4-WLCTerra
+ match ipv4 protocol
+ match ipv4 source address
+ match ipv4 destination address
+ match transport source-port
+ match transport destination-port
+ match flow direction
+ match application name
+ match wireless ssid
+ collect counter bytes long
+ collect counter packets long
+ collect wireless ap mac address
+ collect wireless client mac address
+!
+!
+flow exporter export-WLC-TERRA
+ description Flow-Terra-WLC
+ destination 10.142.99.240
+ transport udp 9996
+ option application-table timeout 500
+!
+!
+flow monitor Fw-WLC-TERRA
+ description User defined 
+ exporter export-WLC-TERRA
+ cache timeout inactive 60
+ cache timeout active 60
+ record wireless avc basic
+!
+!
+parameter-map type webauth global
+ type webauth
+!
+!
+parameter-map type webauth EW-Redirect-ISE
+ type webauth
+ redirect append wlan-ssid tag kofguestwl
+ redirect portal ipv4 10.142.98.82
+ captive-bypass-portal
+!
+!
+parameter-map type webauth GLOBAL-1
+ type webauth
+!
+access-session mac-move deny
+multilink bundle-name authenticated
+!
+pae
+!
+crypto pki trustpoint SLA-TrustPoint
+ enrollment terminal
+ revocation-check crl
+ hash sha512
+!
+crypto pki trustpoint TP-self-signed-911122986
+ enrollment selfsigned
+ subject-name cn=IOS-Self-Signed-Certificate-911122986
+ revocation-check none
+ rsakeypair TP-self-signed-911122986
+ hash sha512
+!
+crypto pki trustpoint CERTIFICADO_Wildcard.pfx
+ enrollment pkcs12
+ revocation-check crl
+ rsakeypair CERTIFICADO_Wildcard.pfx
+ hash sha512
+!
+crypto pki trustpoint CERTIFICADO_WILDCARD_KOF_COM_MX.pfx
+ enrollment pkcs12
+ revocation-check crl
+ rsakeypair CERTIFICADO_WILDCARD_KOF_COM_MX.pfx
+ hash sha512
+!
+!
+crypto pki certificate chain SLA-TrustPoint
+ certificate ca 01
+  30820321 30820209 A0030201 02020101 300D0609 2A864886 F70D0101 0B050030 
+  32310E30 0C060355 040A1305 43697363 6F312030 1E060355 04031317 43697363 
+  6F204C69 63656E73 696E6720 526F6F74 20434130 1E170D31 33303533 30313934 
+  3834375A 170D3338 30353330 31393438 34375A30 32310E30 0C060355 040A1305 
+  43697363 6F312030 1E060355 04031317 43697363 6F204C69 63656E73 696E6720 
+  526F6F74 20434130 82012230 0D06092A 864886F7 0D010101 05000382 010F0030 
+  82010A02 82010100 A6BCBD96 131E05F7 145EA72C 2CD686E6 17222EA1 F1EFF64D 
+  CBB4C798 212AA147 C655D8D7 9471380D 8711441E 1AAF071A 9CAE6388 8A38E520 
+  1C394D78 462EF239 C659F715 B98C0A59 5BBB5CBD 0CFEBEA3 700A8BF7 D8F256EE 
+  4AA4E80D DB6FD1C9 60B1FD18 FFC69C96 6FA68957 A2617DE7 104FDC5F EA2956AC 
+  7390A3EB 2B5436AD C847A2C5 DAB553EB 69A9A535 58E9F3E3 C0BD23CF 58BD7188 
+  68E69491 20F320E7 948E71D7 AE3BCC84 F10684C7 4BC8E00F 539BA42B 42C68BB7 
+  C7479096 B4CB2D62 EA2F505D C7B062A4 6811D95B E8250FC4 5D5D5FB8 8F27D191 
+  C55F0D76 61F9A4CD 3D992327 A8BB03BD 4E6D7069 7CBADF8B DF5F4368 95135E44 
+  DFC7C6CF 04DD7FD1 02030100 01A34230 40300E06 03551D0F 0101FF04 04030201 
+  06300F06 03551D13 0101FF04 05300301 01FF301D 0603551D 0E041604 1449DC85 
+  4B3D31E5 1B3E6A17 606AF333 3D3B4C73 E8300D06 092A8648 86F70D01 010B0500 
+  03820101 00507F24 D3932A66 86025D9F E838AE5C 6D4DF6B0 49631C78 240DA905 
+  604EDCDE FF4FED2B 77FC460E CD636FDB DD44681E 3A5673AB 9093D3B1 6C9E3D8B 
+  D98987BF E40CBD9E 1AECA0C2 2189BB5C 8FA85686 CD98B646 5575B146 8DFC66A8 
+  467A3DF4 4D565700 6ADF0F0D CF835015 3C04FF7C 21E878AC 11BA9CD2 55A9232C 
+  7CA7B7E6 C1AF74F6 152E99B7 B1FCF9BB E973DE7F 5BDDEB86 C71E3B49 1765308B 
+  5FB0DA06 B92AFE7F 494E8A9E 07B85737 F3A58BE1 1A48A229 C37C1E69 39F08678 
+  80DDCD16 D6BACECA EEBC7CF9 8428787B 35202CDC 60E4616A B623CDBD 230E3AFB 
+  418616A9 4093E049 4D10AB75 27E86F73 932E35B5 8862FDAE 0275156F 719BB2F0 
+  D697DF7F 28
+        quit
+crypto pki certificate chain TP-self-signed-911122986
+ certificate self-signed 01
+  3082032E 30820216 A0030201 02020101 300D0609 2A864886 F70D0101 05050030 
+  30312E30 2C060355 04031325 494F532D 53656C66 2D536967 6E65642D 43657274 
+  69666963 6174652D 39313131 32323938 36301E17 0D313730 32313932 32323831 
+  375A170D 32373032 31393232 32383137 5A303031 2E302C06 03550403 1325494F 
+  532D5365 6C662D53 69676E65 642D4365 72746966 69636174 652D3931 31313232 
+  39383630 82012230 0D06092A 864886F7 0D010101 05000382 010F0030 82010A02 
+  82010100 A81F2EDF C2EFA033 5C42FB73 0133B2C8 211E4716 3CE38C14 633C3088 
+  1409BFC5 3E6D9A44 72EB809C 14C82299 044DD604 7BF78B5B 4FEA2D84 7D90E107 
+  B82E910C 3F90EBC8 38F9B253 21EC856C 9EBFA565 6B5E90D8 99D13234 70922EDF 
+  8934182C FD5DC8D4 D10F6F9A B07ECE7C 45CA955C 8C0F2720 08F08284 9BCBC2B1 
+  C622A018 20E9245D 52CE1C54 085B39E1 86A7BEA1 00F652A4 ADD3DFB1 D201DE0D 
+  AECE251F A0073CCA 750BFE60 6605E907 720D79D7 04922F64 67250CB5 FF6C7C12 
+  E360EED0 062061FF 130B0D99 8E5F1C80 013027BF 962CAE27 1A89B5C3 38D72716 
+  4781BED9 0C1A1814 7CCFFA02 02B03A0F 188D6AEA E8A0EDA8 329BB556 444CE7DA 
+  F3E10485 02030100 01A35330 51300F06 03551D13 0101FF04 05300301 01FF301F 
+  0603551D 23041830 168014D0 F818E296 0164D0D9 C883F697 62A93BB2 31BBA530 
+  1D060355 1D0E0416 0414D0F8 18E29601 64D0D9C8 83F69762 A93BB231 BBA5300D 
+  06092A86 4886F70D 01010505 00038201 01003B4F E31EDC41 6F1007F6 2C67FEAB 
+  D2210CA8 B8EC2E3A ECEB4190 CDB39528 BEB83716 DD3CBBF1 2FFE009F F9FF02D3 
+  B5EFD328 BDECB0CB AA46350D 8EFF2DEA 0C0314DC 62D3074B 511B1E81 050EB2AA 
+  32D8428B 6C609AA6 69F19C8A EE83A45C 7A929B84 0AB977E5 25E8BEAB 221C0975 
+  172A3FA7 2F79AFC1 B36D17B7 3022E35C DC8E5796 5FDFD7F7 66717C0C 388E2DD1 
+  C1A5ADC0 1EAFD790 A1EE5FA4 6AD47BC0 2477A351 E842D4F8 97E17A8E 2A116D74 
+  60E252B5 CBB83248 C4F57D55 1E1996AA DCD5C2B3 877C5E4F 6A9BED5C 375DDC89 
+  F8C87EE0 A1F4CC96 040D048D B5F4655E 350D4E9B AD1A05B9 CE0B2CC6 C38ACC89 
+  E7030DC3 8DBDC54C 19B36DA8 0FB2876F CAF4
+        quit
+crypto pki certificate chain CERTIFICADO_Wildcard.pfx
+ certificate 058A1CFA04B63A61ADAB3308ACBC7AA6
+  308206FA 308205E2 A0030201 02021005 8A1CFA04 B63A61AD AB3308AC BC7AA630 
+  0D06092A 864886F7 0D01010B 05003059 310B3009 06035504 06130255 53311530 
+  13060355 040A130C 44696769 43657274 20496E63 31333031 06035504 03132A44 
+  69676943 65727420 476C6F62 616C2047 3220544C 53205253 41205348 41323536 
+  20323032 30204341 31301E17 0D323331 32323030 30303030 305A170D 32343132 
+  31393233 35393539 5A308181 310B3009 06035504 0613024D 58311A30 18060355 
+  04070C11 43697564 61642064 65204DC3 A9786963 6F313F30 3D060355 040A1336 
+  52616D73 6120536F 6C756369 6F6E6573 20646520 4E65676F 63696F73 20656E20 
+  42656269 6461732C 20532044 4520524C 20444520 43563115 30130603 5504030C 
+  0C2A2E6B 6F662E63 6F6D2E6D 78308201 22300D06 092A8648 86F70D01 01010500 
+  0382010F 00308201 0A028201 0100B512 CFA40F4B 632A4870 E601749D 1AAF41BB 
+  DE41724C 97832F1B 580D92D7 E7478D91 C698F4EE 5E48F8F4 2E03E663 B4EC8E9E 
+  2D9059A2 37014C88 626D7DCF DB50C5F8 C72A75FB 34E2E9EC CB0C2895 D5C40EA7 
+  76C05049 5355596D 59A6C45C A013C058 54F8E4A9 57901E1B 877FDA04 3546F07C 
+  1C8FF8AD 8E18A666 1F8766B8 BEA75694 558793F4 F5D13A6B 9F703B19 2A3AD8BB 
+  1DE94DD1 60816764 CDA9DEDD 2C3914A9 E0BF0DD7 D2023A9A F3F59FC9 1F6BD97A 
+  C2C7B10B EBF4C522 AD250047 3492C1CA A4EA531D 9FE8CABA 42606CAA EE4BDC34 
+  170EEDE5 4EBF3367 66B5DF88 D119CF73 AE2460FC 5F795D6C 246D88C7 22E857AA 
+  65A46D05 493C51C8 B685FF9E 97DB0203 010001A3 82039330 82038F30 1F060355 
+  1D230418 30168014 748580C0 66C7DF37 DECFBD29 37AA031D BEEDCD17 301D0603 
+  551D0E04 160414B8 29F6A8FC A73FB7AB C3F8654B D72A52D8 98C64A30 23060355 
+  1D11041C 301A820C 2A2E6B6F 662E636F 6D2E6D78 820A6B6F 662E636F 6D2E6D78 
+  303E0603 551D2004 37303530 33060667 810C0102 02302930 2706082B 06010505 
+  07020116 1B687474 703A2F2F 7777772E 64696769 63657274 2E636F6D 2F435053 
+  300E0603 551D0F01 01FF0404 030205A0 301D0603 551D2504 16301406 082B0601 
+  05050703 0106082B 06010505 07030230 819F0603 551D1F04 81973081 943048A0 
+  46A04486 42687474 703A2F2F 63726C33 2E646967 69636572 742E636F 6D2F4469 
+  67694365 7274476C 6F62616C 4732544C 53525341 53484132 35363230 32304341 
+  312D312E 63726C30 48A046A0 44864268 7474703A 2F2F6372 6C342E64 69676963 
+  6572742E 636F6D2F 44696769 43657274 476C6F62 616C4732 544C5352 53415348 
+  41323536 32303230 4341312D 312E6372 6C308187 06082B06 01050507 0101047B 
+  30793024 06082B06 01050507 30018618 68747470 3A2F2F6F 6373702E 64696769 
+  63657274 2E636F6D 30510608 2B060105 05073002 86456874 74703A2F 2F636163 
+  65727473 2E646967 69636572 742E636F 6D2F4469 67694365 7274476C 6F62616C 
+  4732544C 53525341 53484132 35363230 32304341 312D312E 63727430 0C060355 
+  1D130101 FF040230 00308201 7D060A2B 06010401 D6790204 02048201 6D048201 
+  69016700 7600EECD D064D5DB 1ACEC55C B79DB4CD 13A23287 467CBCEC DEC35148 
+  5946711F B59B0000 018C88AF 53AE0000 04030047 30450221 00BFAB04 99455203 
+  1F05C169 E0A2CE07 953E5125 30A5BD05 7279019E 7369278D 31022064 872C55F8 
+  04B39914 BCFF02EC 603192BE 13866757 6F18405C FA3F218D 39229000 750048B0 
+  E36BDAA6 47340FE5 6A02FA9D 30EB1C52 01CB56DD 2C81D9BB BFAB39D8 84730000 
+  018C88AF 53C50000 04030046 30440220 4C0E556C 21E271B3 092E21A7 539C89C7 
+  C8A11763 B26409CC 56C1B407 C2102424 022053CA 6E632958 08B1084A 5FD67016 
+  3C2686AC FA5DE5B6 0FEB2F4F FB2810BA B3710076 00DAB6BF 6B3FB5B6 229F9BC2 
+  BB5C6BE8 7091716C BB518485 34BDA43D 3048D7FB AB000001 8C88AF53 BD000004 
+  03004730 45022033 CA4C43AB C78E69EB 4F9EE742 0BAC0023 797090CF 8BE17480 
+  2370EF44 68A95D02 2100C308 C7015FCD EC5CF2E5 0C12CCD6 B7871B8C 21FE7940 
+  15C8A63D C82CC41D D55D300D 06092A86 4886F70D 01010B05 00038201 010082EC 
+  E10789DD 4C124F7C 5B24C57D 33B040D9 B476AA6B 396D2127 3658ACD3 0A5EB64F 
+  5155C2EB 90E998F2 64E5BADF 825FE414 2D4AFB81 3C1A448F D60A24FE 6AC1A9F4 
+  DED6ED1F B0DD1EA6 F5E9D018 2636E89B 70B4CF43 1F3F4CC9 BC1857B8 84CEC45D 
+  B439667E 689B6B83 89CAD78B C9EBDB92 6D3D9584 29CC3499 0991A0D1 507335A7 
+  2A5F8FEF 7F82DB2D 44140D83 474A6A53 5E3AC89C E606A3F0 447B4537 AD8B7BBD 
+  E2A412BB 5610C6E8 2AA5E2A4 447CBCF5 B16C3953 4A00C211 09A2538B 2E2330FA 
+  5821621E 7B90AABD 304E1036 57406D96 1852613F CBF7E3A6 955B121B 47904CAE 
+  6C02C1E2 9C6FB9F8 08CCDA5B F240432B 1C1A28FB 55A2A1EF CDBA56BE 5F35
+        quit
+ certificate ca 0CF5BD062B5602F47AB8502C23CCF066
+  308204C8 308203B0 A0030201 0202100C F5BD062B 5602F47A B8502C23 CCF06630 
+  0D06092A 864886F7 0D01010B 05003061 310B3009 06035504 06130255 53311530 
+  13060355 040A130C 44696769 43657274 20496E63 31193017 06035504 0B131077 
+  77772E64 69676963 6572742E 636F6D31 20301E06 03550403 13174469 67694365 
+  72742047 6C6F6261 6C20526F 6F742047 32301E17 0D323130 33333030 30303030 
+  305A170D 33313033 32393233 35393539 5A305931 0B300906 03550406 13025553 
+  31153013 06035504 0A130C44 69676943 65727420 496E6331 33303106 03550403 
+  132A4469 67694365 72742047 6C6F6261 6C204732 20544C53 20525341 20534841 
+  32353620 32303230 20434131 30820122 300D0609 2A864886 F70D0101 01050003 
+  82010F00 3082010A 02820101 00CCF710 624FA6BB 636FED90 5256C56D 277B7A12 
+  568AF1F4 F9D6E7E1 8FBD95AB F2604115 70DB1200 FA270AB5 57385B7D B2519371 
+  950E6A41 945B351B FA7BFABB C5BE2430 FE56EFC4 F37D97E3 14F5144D CBA710F2 
+  16EAAB22 F0312211 61699026 BA78D997 1FE37D66 AB754495 73C8ACFF EF5D0A8A 
+  5943E1AC B23A0FF3 48FCD76B 37C163DC DE46D6DB 45FE7D23 FD90E851 071E51A3 
+  5FED4946 547F2C88 C5F4139C 97153C03 E8A139DC 690C32C1 AF16574C 9447427C 
+  A2C89C7D E6D44D54 AF4299A8 C104C277 9CD648E4 CE11E02A 8099F043 70CF3F76 
+  6BD14C49 AB245EC2 0D82FD46 A8AB6C93 CC625242 7592F89A FA5E5EB2 B061E51F 
+  1FB97F09 98E83DFA 837F4769 A1020301 0001A382 01823082 017E3012 0603551D 
+  130101FF 04083006 0101FF02 0100301D 0603551D 0E041604 14748580 C066C7DF 
+  37DECFBD 2937AA03 1DBEEDCD 17301F06 03551D23 04183016 80144E22 54201895 
+  E6E36EE6 0FFAFAB9 12ED0617 8F39300E 0603551D 0F0101FF 04040302 0186301D 
+  0603551D 25041630 1406082B 06010505 07030106 082B0601 05050703 02307606 
+  082B0601 05050701 01046A30 68302406 082B0601 05050730 01861868 7474703A 
+  2F2F6F63 73702E64 69676963 6572742E 636F6D30 4006082B 06010505 07300286 
+  34687474 703A2F2F 63616365 7274732E 64696769 63657274 2E636F6D 2F446967 
+  69436572 74476C6F 62616C52 6F6F7447 322E6372 74304206 03551D1F 043B3039 
+  3037A035 A0338631 68747470 3A2F2F63 726C332E 64696769 63657274 2E636F6D 
+  2F446967 69436572 74476C6F 62616C52 6F6F7447 322E6372 6C303D06 03551D20 
+  04363034 300B0609 60864801 86FD6C02 01300706 0567810C 01013008 06066781 
+  0C010201 30080606 67810C01 02023008 06066781 0C010203 300D0609 2A864886 
+  F70D0101 0B050003 82010100 90F170CB 28976997 7C74FDC0 FA267B53 ABADCD65 
+  FDBA9C06 9C8AD75A 4387ED4D 4C565FAD C1C5B505 202E59D1 FF4AF5A0 2AD8B095 
+  ADC92E4A 3BD7A7F6 6F8829FC 303F2484 BBC3B77B 93072CAF 876B7633 ED005552 
+  B2599EE4 B9D0F3DF E70FFEDD F8C4B910 72810904 5FCF979E 2E32758E CF9A58D2 
+  57317E37 0181B266 6D291AB1 66096DD1 6E90F4B9 FA2F0114 C55C5664 01D97D87 
+  A838539F 8B5D466D 5CC62784 81D47E8C 8CA39B52 E7C688EC 377C2AFB F0555A38 
+  7210D800 13CF4C73 DBAA3735 A8298169 9C76BCDE 187B90D4 CACFEF67 03FD045A 
+  2116B1FF EA3FDFDC 82F5EBF4 5992230D 242A9525 4CCAA191 E6D4B7AC 8774B3F1 
+  6DA399DB F9D5BD84 409F0798
+        quit
+crypto pki certificate chain CERTIFICADO_WILDCARD_KOF_COM_MX.pfx
+ certificate 09B2B7BF67ED657CEA142D11AC9FB4E4
+  308206F9 308205E1 A0030201 02021009 B2B7BF67 ED657CEA 142D11AC 9FB4E430 
+  0D06092A 864886F7 0D01010B 05003059 310B3009 06035504 06130255 53311530 
+  13060355 040A130C 44696769 43657274 20496E63 31333031 06035504 03132A44 
+  69676943 65727420 476C6F62 616C2047 3220544C 53205253 41205348 41323536 
+  20323032 30204341 31301E17 0D323431 32313230 30303030 305A170D 32353132 
+  31313233 35393539 5A308181 310B3009 06035504 0613024D 58311A30 18060355 
+  04070C11 43697564 61642064 65204DC3 A9786963 6F313F30 3D060355 040A1336 
+  52616D73 6120536F 6C756369 6F6E6573 20646520 4E65676F 63696F73 20656E20 
+  42656269 6461732C 20532044 4520524C 20444520 43563115 30130603 5504030C 
+  0C2A2E6B 6F662E63 6F6D2E6D 78308201 22300D06 092A8648 86F70D01 01010500 
+  0382010F 00308201 0A028201 0100956E F51D90D5 4D55A7D9 7251344A 8FBE06F1 
+  013EA824 7A72B2FF CB1B3F8B 183EA114 E8F76531 375AA223 D451686E 1A2692B9 
+  440BA617 4EF6FDCC FB91C56D BB97BDB0 F18F4E9C 53205B97 54D49895 8EDAE28A 
+  FA2CBA96 A556AB1A 8F59B3A8 7F74FB5B 6E9CA9C9 808EF93A C66F19AF D567FB49 
+  F7765727 1C588D18 B82B7776 2E5B95C1 866E19DE 79BB3D35 F19B4FD9 D9FE94C8 
+  E557FB1E F1FCDB20 16DD1C6D 3437E930 D760307A A4D39363 CE226365 2644782B 
+  7DFB6DAC B57154B8 F712D7D8 FDAB22A5 1FDC1109 9D90D071 DF809387 2910185E 
+  9A60F7DE A399AAEF A8572047 A66B8747 836DC512 112FC4AA 6FA7D3C6 18720459 
+  AE8D7F5F FF3A075F 6CAB39B8 B6A50203 010001A3 82039230 82038E30 1F060355 
+  1D230418 30168014 748580C0 66C7DF37 DECFBD29 37AA031D BEEDCD17 301D0603 
+  551D0E04 16041457 A776D249 0EE5977D 7C1580C0 93D4E93F 01C30A30 23060355 
+  1D11041C 301A820C 2A2E6B6F 662E636F 6D2E6D78 820A6B6F 662E636F 6D2E6D78 
+  303E0603 551D2004 37303530 33060667 810C0102 02302930 2706082B 06010505 
+  07020116 1B687474 703A2F2F 7777772E 64696769 63657274 2E636F6D 2F435053 
+  300E0603 551D0F01 01FF0404 030205A0 301D0603 551D2504 16301406 082B0601 
+  05050703 0106082B 06010505 07030230 819F0603 551D1F04 81973081 943048A0 
+  46A04486 42687474 703A2F2F 63726C33 2E646967 69636572 742E636F 6D2F4469 
+  67694365 7274476C 6F62616C 4732544C 53525341 53484132 35363230 32304341 
+  312D312E 63726C30 48A046A0 44864268 7474703A 2F2F6372 6C342E64 69676963 
+  6572742E 636F6D2F 44696769 43657274 476C6F62 616C4732 544C5352 53415348 
+  41323536 32303230 4341312D 312E6372 6C308187 06082B06 01050507 0101047B 
+  30793024 06082B06 01050507 30018618 68747470 3A2F2F6F 6373702E 64696769 
+  63657274 2E636F6D 30510608 2B060105 05073002 86456874 74703A2F 2F636163 
+  65727473 2E646967 69636572 742E636F 6D2F4469 67694365 7274476C 6F62616C 
+  4732544C 53525341 53484132 35363230 32304341 312D312E 63727430 0C060355 
+  1D130101 FF040230 00308201 7C060A2B 06010401 D6790204 02048201 6C048201 
+  68016600 740012F1 4E34BD53 724C8406 19C38F3F 7A13F8E7 B5628788 9C6D3005 
+  84EBE586 263A0000 0193BD2B D0930000 04030045 30430220 2F2056DE 677B5878 
+  CFDF83F2 ECAE3CD0 80F478CE 0F3BECF7 73A95B25 72912B6B 021F3576 A47290DB 
+  CE878112 B75D20B5 172CD5F4 7E177825 10971403 D0DD4629 F0007600 ED3C4BD6 
+  E806C2A4 A20057DB CB24E238 01DF512F EDC486C5 700F20DD B73E3FE0 00000193 
+  BD2BD09A 00000403 00473045 022100C2 329C1981 0077B3DB C9131494 EA621EE9 
+  7B90DA22 32A8925D F840F8E7 DA005E02 2046DF2F D04EBC65 44BC43B4 E87D47A0 
+  E90DA68D 57FA4221 53906C3D 488ECEB3 83007600 E6D23163 40778CC1 104106D7 
+  71B9CEC1 D240F696 8486FBBA 87321DFD 1E378E50 00000193 BD2BD0A6 00000403 
+  00473045 022070FB AF8E9DBB 48D2AF6C 82F8064F A8825E86 7473131C 2443767F 
+  31957AE7 464C0221 00C80EC7 5482AB91 95D2FB21 6B2BC89C 0874F34D 665A59B1 
+  DB60F009 30649495 18300D06 092A8648 86F70D01 010B0500 03820101 00616ED2 
+  8A1B6395 1062A2D0 0234A5ED 9B7225CA EAB08ED5 6827F7FA DEDB02EF D0635941 
+  B261D50C FA395999 D6540D7A 43ABD835 2FBC23D4 D00ED4B8 58A44224 2B88D72D 
+  79219907 16454B0F 9C00C226 ADBC97C5 0EB2F6CD 88C4E93B 1F435D5C D90DDEC7 
+  B4310B0A DD2369BE 1417B9D8 CB1EEDC2 6AAABB97 D15717AB 4B339C35 ADDC8FD2 
+  DF6D10E9 ECAAD3DD ED170A93 BD36385D 9167A2A5 0C066148 DCADB180 4DFA7472 
+  623432C1 6A85B4D8 E0DBEE02 113FC79D 5545768D 7FDD0EA0 5DEE49CB 7E7B41E9 
+  34BBB358 ED8697AA 24703B9E 0703B8E6 536A3692 6284C2CB 1F84FA9B A024EB9B 
+  EE5500A1 5932B4CF 806D1F5D 6B72AD52 B34162D7 E009B821 2E092C79 C6
+        quit
+ certificate ca 0CF5BD062B5602F47AB8502C23CCF066
+  308204C8 308203B0 A0030201 0202100C F5BD062B 5602F47A B8502C23 CCF06630 
+  0D06092A 864886F7 0D01010B 05003061 310B3009 06035504 06130255 53311530 
+  13060355 040A130C 44696769 43657274 20496E63 31193017 06035504 0B131077 
+  77772E64 69676963 6572742E 636F6D31 20301E06 03550403 13174469 67694365 
+  72742047 6C6F6261 6C20526F 6F742047 32301E17 0D323130 33333030 30303030 
+  305A170D 33313033 32393233 35393539 5A305931 0B300906 03550406 13025553 
+  31153013 06035504 0A130C44 69676943 65727420 496E6331 33303106 03550403 
+  132A4469 67694365 72742047 6C6F6261 6C204732 20544C53 20525341 20534841 
+  32353620 32303230 20434131 30820122 300D0609 2A864886 F70D0101 01050003 
+  82010F00 3082010A 02820101 00CCF710 624FA6BB 636FED90 5256C56D 277B7A12 
+  568AF1F4 F9D6E7E1 8FBD95AB F2604115 70DB1200 FA270AB5 57385B7D B2519371 
+  950E6A41 945B351B FA7BFABB C5BE2430 FE56EFC4 F37D97E3 14F5144D CBA710F2 
+  16EAAB22 F0312211 61699026 BA78D997 1FE37D66 AB754495 73C8ACFF EF5D0A8A 
+  5943E1AC B23A0FF3 48FCD76B 37C163DC DE46D6DB 45FE7D23 FD90E851 071E51A3 
+  5FED4946 547F2C88 C5F4139C 97153C03 E8A139DC 690C32C1 AF16574C 9447427C 
+  A2C89C7D E6D44D54 AF4299A8 C104C277 9CD648E4 CE11E02A 8099F043 70CF3F76 
+  6BD14C49 AB245EC2 0D82FD46 A8AB6C93 CC625242 7592F89A FA5E5EB2 B061E51F 
+  1FB97F09 98E83DFA 837F4769 A1020301 0001A382 01823082 017E3012 0603551D 
+  130101FF 04083006 0101FF02 0100301D 0603551D 0E041604 14748580 C066C7DF 
+  37DECFBD 2937AA03 1DBEEDCD 17301F06 03551D23 04183016 80144E22 54201895 
+  E6E36EE6 0FFAFAB9 12ED0617 8F39300E 0603551D 0F0101FF 04040302 0186301D 
+  0603551D 25041630 1406082B 06010505 07030106 082B0601 05050703 02307606 
+  082B0601 05050701 01046A30 68302406 082B0601 05050730 01861868 7474703A 
+  2F2F6F63 73702E64 69676963 6572742E 636F6D30 4006082B 06010505 07300286 
+  34687474 703A2F2F 63616365 7274732E 64696769 63657274 2E636F6D 2F446967 
+  69436572 74476C6F 62616C52 6F6F7447 322E6372 74304206 03551D1F 043B3039 
+  3037A035 A0338631 68747470 3A2F2F63 726C332E 64696769 63657274 2E636F6D 
+  2F446967 69436572 74476C6F 62616C52 6F6F7447 322E6372 6C303D06 03551D20 
+  04363034 300B0609 60864801 86FD6C02 01300706 0567810C 01013008 06066781 
+  0C010201 30080606 67810C01 02023008 06066781 0C010203 300D0609 2A864886 
+  F70D0101 0B050003 82010100 90F170CB 28976997 7C74FDC0 FA267B53 ABADCD65 
+  FDBA9C06 9C8AD75A 4387ED4D 4C565FAD C1C5B505 202E59D1 FF4AF5A0 2AD8B095 
+  ADC92E4A 3BD7A7F6 6F8829FC 303F2484 BBC3B77B 93072CAF 876B7633 ED005552 
+  B2599EE4 B9D0F3DF E70FFEDD F8C4B910 72810904 5FCF979E 2E32758E CF9A58D2 
+  57317E37 0181B266 6D291AB1 66096DD1 6E90F4B9 FA2F0114 C55C5664 01D97D87 
+  A838539F 8B5D466D 5CC62784 81D47E8C 8CA39B52 E7C688EC 377C2AFB F0555A38 
+  7210D800 13CF4C73 DBAA3735 A8298169 9C76BCDE 187B90D4 CACFEF67 03FD045A 
+  2116B1FF EA3FDFDC 82F5EBF4 5992230D 242A9525 4CCAA191 E6D4B7AC 8774B3F1 
+  6DA399DB F9D5BD84 409F0798
+        quit
+!
+crypto pki certificate pool
+ cabundle nvram:ios_core.p7b
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+service-template DEFAULT_LINKSEC_POLICY_MUST_SECURE
+ linksec policy must-secure
+service-template DEFAULT_LINKSEC_POLICY_SHOULD_SECURE
+ linksec policy should-secure
+service-template DEFAULT_CRITICAL_VOICE_TEMPLATE
+ voice vlan
+service-template DEFAULT_CRITICAL_DATA_TEMPLATE
+service-template webauth-global-inactive
+ inactivity-timer 3600 
+memory free low-watermark processor 170271
+device classifier
+license udi pid C9800-L-F-K9 sn FCL2652027D
+license smart transport smart
+diagnostic bootup level minimal
+
+et-analytics
+!
+!
+enable secret 9 $9$o9VnQUTTDi57i.$Y1zrU0/wrV2kCANoiDqomKHu0nR9FLcvfYCuR33pZjY
+!
+username DXCadmin privilege 15 secret 9 $9$.emX8Nz7AIJObE$AgPDAFdXh/a5eGDVNniM.izle3FsHOvIXDYcPQywVOE
+username Net0psCR20 privilege 15 secret 9 $9$hhc02K8XbjvaX.$cJ0xpZV40JCaEGa/L4EZwI73j2R/CLItgdsXn3qZJII
+username usergfs01 secret 9 $9$2VIK4/AI2lMF2U$UZFyRCHcZVaBfWTSqppIGji0okUkDHPpBuiM/yV.BQk
+!
+redundancy
+ mode sso
+ main-cpu
+  standby console enable
+!
+crypto engine compliance shield disable
+!
+!
+!
+!
+!
+vlan internal allocation policy ascending
+!
+vlan 137
+ name pkitempwl
+!
+vlan 198
+ name management
+!
+vlan 308
+ name appletv
+!
+vlan 324
+ name femsawl
+!
+vlan 342
+ name kconsejowl
+!
+vlan 344
+ name kmobdevwl
+!
+vlan 345
+ name kofguestwl
+!
+lldp run
+!
+class-map match-any AVC-Reanchor-Class
+ match protocol cisco-jabber-audio
+ match protocol cisco-jabber-video
+ match protocol webex-media
+ match protocol webex-app-sharing
+ match protocol webex-control
+ match protocol webex-meeting
+ match protocol wifi-calling
+class-map match-any AutoQos-4.0-Output-CAPWAP-C-Class
+ match access-group name AutoQos-4.0-Output-Acl-CAPWAP-C
+class-map match-any AutoQos-4.0-Output-Voice-Class
+ match dscp ef 
+!
+!
+policy-map AutoQos-4.0-wlan-Port-Output-Policy
+ class AutoQos-4.0-Output-CAPWAP-C-Class
+  priority level 1
+ class AutoQos-4.0-Output-Voice-Class
+  priority level 2
+ class class-default
+!
+!
+! 
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+! 
+! 
+!
+!
+interface Port-channel1
+ description New_WLC-1
+ switchport mode trunk
+!
+interface TwoGigabitEthernet0/0/0
+ description *** Network Port reserved for future use ***
+ shutdown
+ negotiation auto
+ no snmp trap link-status
+ service-policy output AutoQos-4.0-wlan-Port-Output-Policy
+!
+interface TwoGigabitEthernet0/0/1
+ description *** Network Port reserved for future use ***
+ shutdown
+ negotiation auto
+ no snmp trap link-status
+ service-policy output AutoQos-4.0-wlan-Port-Output-Policy
+!
+interface TwoGigabitEthernet0/0/2
+ description *** Network Port reserved for future use ***
+ shutdown
+ negotiation auto
+ no snmp trap link-status
+ service-policy output AutoQos-4.0-wlan-Port-Output-Policy
+!
+interface TwoGigabitEthernet0/0/3
+ description *** Network Port reserved for future use ***
+ shutdown
+ negotiation auto
+ no snmp trap link-status
+ service-policy output AutoQos-4.0-wlan-Port-Output-Policy
+!
+interface TenGigabitEthernet0/1/0
+ switchport mode trunk
+ negotiation auto
+ channel-group 1 mode active
+ service-policy output AutoQos-4.0-wlan-Port-Output-Policy
+!
+interface TenGigabitEthernet0/1/1
+ switchport mode trunk
+ negotiation auto
+ channel-group 1 mode active
+ service-policy output AutoQos-4.0-wlan-Port-Output-Policy
+!
+interface GigabitEthernet0
+ description *** SP to terra-mdf-sw254n::Gi X/5/6 ***
+ vrf forwarding Mgmt-intf
+ ip address 10.142.70.252 255.255.255.0 secondary
+ ip address 10.142.70.253 255.255.255.0
+ negotiation auto
+!
+interface Vlan1
+ no ip address
+ no ip proxy-arp
+ shutdown
+!
+interface Vlan198
+ description *** SUBRED VLAN 198 - KOF MEX TERRA - WIRELESS MGMT ***
+ ip address 10.142.99.245 255.255.254.0 secondary
+ ip address 10.142.99.250 255.255.254.0
+ no ip proxy-arp
+!
+interface Vlan324
+ description *** SUBRED VLAN 324 - KOF MEX TERRA - WIRELESS LAN - femsawl ***
+ ip address 10.142.224.10 255.255.248.0
+ no ip proxy-arp
+!
+interface Vlan342
+ description *** SUBRED VLAN 342 - KOF MEX TERRA - WIRELESS LAN - KCONCEJOWL ***
+ ip address 10.142.250.10 255.255.255.0
+ no ip proxy-arp
+!
+interface Vlan344
+ description *** SUBRED VLAN 344 - KOF MEX TERRA - WIRELESS LAN - KMOBDEVWL ***
+ ip address 10.142.176.10 255.255.248.0
+ no ip proxy-arp
+!
+ip default-gateway 10.142.98.254
+ip forward-protocol nd
+ip ftp source-interface GigabitEthernet0
+ip ftp username cisco
+ip ftp password 7 045802150C2E1D1C5A
+ip tftp source-interface GigabitEthernet0
+ip http server
+ip http authentication local
+ip http secure-server
+ip http secure-trustpoint CERTIFICADO_WILDCARD_KOF_COM_MX.pfx
+ip http client source-interface Vlan198
+ip http client tls-version TLSv1.2 
+ip http client secure-trustpoint TP-self-signed-911122986
+ip ssh bulk-mode 131072
+ip ssh time-out 15
+ip ssh authentication-retries 5
+ip ssh source-interface GigabitEthernet0
+ip ssh dscp 32
+ip ssh server algorithm mac hmac-sha2-256 hmac-sha2-256-etm@openssh.com hmac-sha2-512 hmac-sha2-512-etm@openssh.com
+ip ssh server algorithm encryption aes256-ctr aes256-gcm aes256-gcm@openssh.com
+ip ssh server algorithm kex curve25519-sha256@libssh.org ecdh-sha2-nistp256 ecdh-sha2-nistp384 ecdh-sha2-nistp521
+ip ssh server algorithm hostkey rsa-sha2-256 rsa-sha2-512
+ip ssh server algorithm publickey ecdsa-sha2-nistp256 ecdsa-sha2-nistp384 ecdsa-sha2-nistp521 rsa-sha2-256 rsa-sha2-512
+ip scp server enable
+ip tacacs source-interface GigabitEthernet0 
+ip route 0.0.0.0 0.0.0.0 10.142.98.254 name DEFAULT-ROUTE
+ip route 138.35.219.99 255.255.255.255 Null0
+ip route 138.35.219.101 255.255.255.255 Null0
+ip route 192.168.240.0 255.255.248.0 10.142.99.248
+ip route vrf Mgmt-intf 0.0.0.0 0.0.0.0 GigabitEthernet0 10.142.70.254
+!
+!
+ip access-list extended ACL-Access-VTY-DXC
+ 10 remark *** ACL for SSH CLI Access - Coca Cola Femsa ***
+ 10 permit ip host 10.120.186.233 any
+ 20 permit ip host 10.120.186.238 any
+ 30 permit ip 10.121.2.128 0.0.0.31 any
+ 40 permit ip host 10.121.10.1 any
+ 50 permit ip host 10.122.0.77 any
+ 60 permit ip host 10.122.1.4 any
+ 70 permit ip 10.122.56.0 0.0.3.255 any
+ 80 permit ip host 10.123.0.1 any
+ 90 permit ip host 10.123.120.103 any
+ 100 permit ip 10.123.242.0 0.0.0.255 any
+ 110 permit ip 10.138.7.0 0.0.0.31 any
+ 120 permit ip 138.35.128.0 0.0.0.255 any
+ 121 permit ip 138.35.7.0 0.0.0.255 any
+ 122 permit ip 138.35.6.0 0.0.0.255 any
+ 130 permit ip 138.35.216.0 0.0.7.255 any
+ 140 permit ip host 187.219.162.66 any
+ 150 permit ip host 187.219.162.70 any
+ 160 permit ip 207.169.17.0 0.0.0.255 any
+ 170 deny ip any any
+ip access-list extended ACL_WEBAUTH_REDIRECT
+ 10 deny tcp any host 10.142.98.82 eq 8443
+ 20 deny tcp any host 10.142.98.82 eq 8905
+ 30 deny udp any host 10.142.98.82 eq domain
+ 40 permit tcp any host 10.142.98.82 eq www
+ip access-list extended AutoQos-4.0-Output-Acl-CAPWAP-C
+ 10 permit udp any eq 5246 16666 any
+ip access-list extended CAP1-FILTER-LIST
+ 10 permit tcp 10.142.225.0 0.0.0.255 8.8.8.0 0.0.0.255
+ 20 permit tcp 8.8.8.0 0.0.0.255 10.142.225.0 0.0.0.255
+ip access-list extended CAP2-FILTER-LIST
+ 10 permit tcp 10.142.178.0 0.0.0.255 10.142.70.0 0.0.0.255
+ 20 permit tcp 10.142.70.0 0.0.0.255 10.142.178.0 0.0.0.255
+ip access-list extended CLUS-ACL
+ 10 deny tcp any host 10.142.98.82 eq 8443
+ 100 permit ip any any
+ip access-list extended PERMIT_INTERNET
+ 10 permit ip any any
+ip access-list extended TAC
+ 10 permit ip any any
+ip access-list extended cwa_redirect
+ 10 deny ip any host 10.142.98.82
+ 20 deny ip host 10.142.98.82 any
+ 30 deny udp any any eq domain
+ 40 deny udp any eq domain any
+ 50 permit tcp any any eq www
+ip access-list extended permit_cwa
+ 10 permit tcp any host 10.142.98.82
+ 20 permit ip any host 10.142.98.82
+ 30 deny tcp any any
+ 40 deny ip any any
+ip radius source-interface Vlan198 
+!
+logging source-interface Vlan198
+logging host 138.35.6.135 vrf Mgmt-intf
+logging host 138.35.219.13
+logging host 138.35.216.13
+logging host 138.35.6.135
+ip access-list standard 30
+ 10 remark *** DXC NTP Server Access ***
+ 10 permit 10.148.96.1
+ 20 permit 138.35.151.0 0.0.0.255
+ip access-list standard 31
+ 10 remark *** DXC NTP Restrict Querys ***
+ 10 deny   any
+ip access-list standard 93
+ 10 remark *** CAPGEMINI SNMP Access ***
+ 10 permit 10.122.122.16 0.0.0.15
+ 20 permit 10.121.202.176 0.0.0.15
+ 30 permit 10.153.0.128 0.0.0.15
+ip access-list standard 99
+ 10 remark *** DXC GNTA SNMP Access ***
+ 10 permit 138.35.216.0 0.0.7.255
+ 20 permit 138.35.7.0 0.0.0.255
+ 30 permit 138.35.6.0 0.0.0.255
+!
+snmp-server engineID local 8000000903008C1E806E62AC
+snmp-server group DxCFEMSA v3 priv 
+snmp-server group Grsnmpv3CAP v3 priv read CapgeminiVieW3 access 93
+snmp-server group Grsnmpv3DXC v3 priv read DXCKOFvieW3 access 99
+snmp-server view DXCKOFvieW3 iso included
+snmp-server view DXCKOFvieW3 mib-2 included
+snmp-server view DXCKOFvieW3 system included
+snmp-server view DXCKOFvieW3 interfaces included
+snmp-server view DXCKOFvieW3 cisco included
+snmp-server view CapgeminiVieW3 iso included
+snmp-server view CapgeminiVieW3 mib-2 included
+snmp-server view CapgeminiVieW3 system included
+snmp-server view CapgeminiVieW3 interfaces included
+snmp-server view CapgeminiVieW3 cisco included
+snmp-server host 138.35.6.135 vrf Mgmt-intf version 3 priv DxCFEMSA 
+snmp-server host 138.35.6.135 vrf Mgmt-intf GN0CR3AD 
+snmp mib community-map GN0CR3AD engineid 8000000903008C1E806E61AC
+tacacs server DXC-GNTA-TACACS-01
+ address ipv4 138.35.223.70
+ key 7 132F1B265B1C4F203F336330
+ timeout 5
+tacacs server DXC-GNTA-TACACS-02
+ address ipv4 138.35.223.100
+ key 7 12330923421B470E3E3C6F2B
+ timeout 5
+!
+!
+!
+!
+radius server RADIUS_SERVER_KOF_MEX_01
+ address ipv4 10.142.50.53 auth-port 1812 acct-port 1813
+ key 7 062D5F07611D11393144001958077A3F70651D663550301F2550
+!
+radius server RADIUS_SERVER_KOF_MEX_02
+ address ipv4 10.142.50.36 auth-port 1812 acct-port 1813
+ key 7 09671E2F34560F323F5F16387F277827616F3D540140365F7F09
+!
+radius server RADIUS_SERVER_TERRA_ISE
+ address ipv4 10.142.98.82 auth-port 1812 acct-port 1813
+ key 7 04705B202272546E3D4A170546085C107E660A7B2476151A2147
+!
+!
+control-plane
+!
+!
+!
+!
+!
+!
+line con 0
+ exec-timeout 15 0
+ stopbits 1
+line aux 0
+line vty 0 4
+ exec-timeout 15 0
+ logging synchronous
+ length 0
+ transport input ssh
+ transport output all
+line vty 5 15
+ exec-timeout 15 0
+ logging synchronous
+ transport input ssh
+ transport output all
+!
+ntp source GigabitEthernet0
+ntp access-group peer 30
+ntp access-group serve-only 31
+ntp access-group query-only 31
+ntp server vrf Mgmt-intf 138.35.151.49 prefer
+ntp server vrf Mgmt-intf 138.35.151.113
+call-home
+ contact-email-addr crlaamnoc_mailbox@dxc.com
+ source-ip-address "10.142.99.250"
+ street-address "Terracota"
+ http resolve-hostname ipv4-first
+ profile "CiscoTAC-1"
+  active
+  destination transport-method http
+!
+!
+!
+!
+!
+event manager applet TAC_WNCD_CPU authorization bypass
+ event timer watchdog time 1800 maxrun 86400
+ action 01 cli command "enable"
+ action 02 cli command "terminal exec prompt timestamp"
+ action 03 cli command "term len 0"
+ action 04 file open FD flash:TAC_WNCD_CPU.txt a+
+ action 05 set cmd "sh clock"
+ action 06 cli command "$cmd"
+ action 07 file puts FD "------------------ $cmd ------------------\n$_cli_result"
+ action 08 set cmd "show processes cpu platform sorted | inc wncd"
+ action 09 cli command "$cmd"
+ action 10 file puts FD "------------------ $cmd ------------------\n$_cli_result"
+ action 11 set cmd "sh platform software status control-processor brief"
+ action 12 cli command "$cmd"
+ action 13 file puts FD "------------------ $cmd ------------------\n$_cli_result"
+ action 14 set cmd "show mdns-sd service statistics"
+ action 15 cli command "$cmd"
+ action 16 file puts FD "------------------ $cmd ------------------\n$_cli_result"
+ action 17 set cmd "show platform hardware chassis active qfp infrastructure punt statistics type per-cause"
+ action 18 cli command "$cmd"
+ action 19 file puts FD "------------------ $cmd ------------------\n$_cli_result"
+ action 20 set cmd "show platform hardware chassis active qfp feature wireless punt statistics"
+ action 21 cli command "$cmd"
+ action 22 file puts FD "------------------ $cmd ------------------\n$_cli_result"
+ action 23 set cmd "show wireless client summary | i Number of Clients:"
+ action 24 cli command "$cmd"
+ action 25 file puts FD "------------------ $cmd ------------------\n$_cli_result"
+ action 30 set cmd "show process cpu platform sorted"
+ action 31 cli command "$cmd"
+ action 32 file puts FD "------------------ $cmd ------------------\n$_cli_result"
+ action 50 set cmd "show process cpu sorted"
+ action 51 cli command "$cmd"
+ action 52 file puts FD "------------------ $cmd ------------------\n$_cli_result"
+ action 60 set cmd "show process cpu history"
+ action 61 cli command "$cmd"
+ action 62 file puts FD "------------------ $cmd ------------------\n$_cli_result"
+ action 90 cli command "end"
+ action 91 file close FD
+!
+redun-management interface Vlan198 chassis 1 address 10.142.99.245 chassis 2 address 10.142.99.249
+wireless mobility group member mac-address 8c1e.806d.904b ip 192.168.240.20 public-ip 10.142.99.248 group default
+wireless mobility mac-address 8c1e.806e.0198
+wireless aaa policy default-aaa-policy
+wireless cts-sxp profile default-sxp-profile
+wireless management interface Vlan198
+wireless profile airtime-fairness default-atf-policy 0
+wireless profile flex default-flex-profile
+ description "default flex profile"
+wireless profile mesh default-mesh-profile
+ description "default mesh profile"
+wireless profile multi-bssid default-multi-bssid-profile
+ description "Default multi bssid profile"
+wireless profile radio default-radio-profile
+ description "Preconfigured default radio profile"
+wireless profile policy AP-PP-KOF-MEX-TERRA-01
+ description "Policy Profile Local - KOF MEX TERRA - femsawl"
+ no exclusionlist
+ idle-timeout 3600
+ ip arp-limit rate burst_interval 50
+ ip arp-limit rate pps 500
+ ipv4 arp-proxy
+ ipv4 flow monitor Fw-WLC-TERRA input
+ ipv4 flow monitor Fw-WLC-TERRA output
+ ipv6 nd proxy full-proxy
+ session-timeout 43200
+ vlan femsawl
+ no shutdown
+wireless profile policy AP-PP-KOF-MEX-TERRA-02
+ description "Policy Profile Local - KOF MEX TERRA - KMOBDEVWL"
+ no exclusionlist
+ idle-timeout 3600
+ ip arp-limit rate burst_interval 50
+ ip arp-limit rate pps 500
+ ipv4 arp-proxy
+ vlan kmobdevwl
+ no shutdown
+wireless profile policy AP-PP-KOF-MEX-TERRA-04
+ aaa-override
+ accounting-list AAA-ISE-ACCOUN
+ description "Policy Profile Anchor - KOF MEX TERRA - kofguestwl"
+ dhcp-tlv-caching
+ no exclusionlist
+ http-tlv-caching
+ mobility anchor 192.168.240.20 priority 1
+ nac
+ vlan 345
+ no shutdown
+wireless profile policy AP-PP-KOF-MEX-TERRA-05
+ description "Policy Profile Local - KOF MEX TERRA - kconcejowl"
+ no exclusionlist
+ idle-timeout 3600
+ ipv4 arp-proxy
+ vlan kconsejowl
+ no shutdown
+wireless profile policy AP-PP-KOF-MEX-TERRA-07
+ description TEM-kmovtempwl
+ dhcp-tlv-caching
+ http-tlv-caching
+ vlan femsawl
+ no shutdown
+wireless profile policy APP-PP-KOF-MEX_appletv
+ no central authentication
+ no central dhcp
+ no central switching
+ description APP-PP-KOF-MEX_appletv
+ vlan appletv
+ no shutdown
+wireless profile policy default-policy-profile
+ autoqos mode voice
+ description "default policy profile"
+ service-policy input platinum-up
+ service-policy output platinum
+ vlan kmobilewl
+ no shutdown
+wireless profile policy APP-PP-KOF-MEX_kofguestwl
+ description APP-PP-KOF-MEX_kofguestwl
+ mobility anchor
+ vlan kmobdevwl
+wireless profile policy POLICY_PROFILE_KOF_TERRA_ANCHOR
+ description POLICY_PROFILE_KOF_TERRA_ANCHOR
+wireless tag site default-site-tag
+ description "default site tag"
+wireless tag site SITE-TAG-KOF-MEX-TERRA-01
+ ap-profile AP-PROF-KOF-MEX-TERRA-01
+ description "Site TAG - KOF MEX TERRA GRAL"
+wireless tag policy default-policy-tag
+ description "default policy-tag"
+wireless tag policy POLICY_TAG_KOF_TERRA_WLC03
+ description POLICY_TAG_KOF_TERRA_WLC03
+ wlan femsawl policy AP-PP-KOF-MEX-TERRA-01
+ wlan KMOBDEVWL policy AP-PP-KOF-MEX-TERRA-02
+ wlan Kmovtempwl policy AP-PP-KOF-MEX-TERRA-07
+ wlan kconsejowl policy AP-PP-KOF-MEX-TERRA-05
+ wlan kofguestwl policy AP-PP-KOF-MEX-TERRA-04
+wireless tag rf default-rf-tag
+ 24ghz-rf-policy Low_Client_Density_rf_24gh
+ description "default RF tag"
+wireless tag rf RF-TAG-KOF-MEX-TERRA-01
+ 24ghz-rf-policy AP-RF-24
+ 5ghz-rf-policy AP-RF-5
+ description "RF TAG - KOF MEX TERRA GRAL"
+wireless tag rf RF-TAG-KOF-MEX-TERRA-PISO8
+ 24ghz-rf-policy AP-RF-24-PISO8
+ 5ghz-rf-policy AP-RF-5-PISO8
+ description RF-TAG-KOF-MEX-TERRA-PISO8
+wireless tag rf RF-TAG-KOF-MEX-TERRA-PISO9
+ 24ghz-rf-policy AP-RF-24-PISO9
+ 5ghz-rf-policy AP-RF-5-PISO9
+ description RF-TAG-KOF-MEX-TERRA-PISO9
+wireless tag rf RF-TAG-KOF-MEX-TERRA-PISO11
+ 24ghz-rf-policy AP-RF-24
+ 5ghz-rf-policy High_Client_Density_rf_5gh
+ description RF-TAG-KOF-MEX-TERRA-PISO11
+no wireless wps client-exclusion all
+no wireless wps client-exclusion dot11-assoc
+no wireless wps client-exclusion dot1x-auth
+no wireless wps client-exclusion dot1x-timeout
+no wireless wps client-exclusion ip-theft
+no wireless wps client-exclusion web-auth
+wireless security dot1x group-key interval 86400
+no wireless security dot1x max-login-ignore-identity-response
+wireless exclusionlist 4cd5.77b8.6fb9 description "Solicitud Tsystems"
+wireless exclusionlist 50da.d661.4dfa description "Error user"
+wireless fabric control-plane default-control-plane
+ description "default control plane name"
+wireless country MX
+wlan femsawl 2 femsawl
+ assisted-roaming dual-list
+ band-select
+ no okc
+ radio policy dot11 24ghz
+ radio policy dot11 5ghz
+ security ft
+ no security wpa akm dot1x
+ security wpa akm ft dot1x
+ security dot1x authentication-list KOF-MX-AAA-AUTH-NPS-01
+ no shutdown
+wlan KMOBDEVWL 6 KMOBDEVWL
+ security wpa akm cckm
+ security dot1x authentication-list KOF-MX-AAA-AUTH-NPS-01
+ no shutdown
+wlan Kmovtempwl 7 FemsawlTemp2
+ no okc
+ radio policy dot11 24ghz
+ radio policy dot11 5ghz
+ security ft
+ no security wpa akm dot1x
+ security wpa akm ft dot1x
+ security dot1x authentication-list Kmovtemp
+ no shutdown
+wlan kconsejowl 5 kconsejowl
+ radio policy dot11 24ghz
+ radio policy dot11 5ghz
+ security wpa psk set-key ascii 0 C@n24+%K0F3
+ no security wpa akm dot1x
+ security wpa akm psk
+ no shutdown
+wlan kofguestwl 4 kofguestwl
+ mac-filtering AAA-ISE-AUTHOR
+ radio policy dot11 24ghz
+ radio policy dot11 5ghz
+ no security ft adaptive
+ no security wpa
+ no security wpa wpa2
+ no security wpa wpa2 ciphers aes
+ no security wpa akm dot1x
+ security web-auth parameter-map global
+ no shutdown
+ap dot11 24ghz rf-profile AP-RF-24
+ description AP-RF-24-GRAL
+ rate RATE_11M disable
+ rate RATE_12M mandatory
+ rate RATE_1M disable
+ rate RATE_24M mandatory
+ rate RATE_2M disable
+ rate RATE_5_5M disable
+ rate RATE_6M disable
+ rate RATE_9M disable
+ tx-power max 11
+ tx-power min 5
+ no shutdown
+ap dot11 24ghz rf-profile AP-RF-24-PISO8
+ description AP-RF-24-PISO8
+ rate RATE_11M disable
+ rate RATE_12M mandatory
+ rate RATE_1M disable
+ rate RATE_24M mandatory
+ rate RATE_2M disable
+ rate RATE_5_5M disable
+ rate RATE_6M disable
+ rate RATE_9M disable
+ tx-power max 19
+ tx-power min 10
+ no shutdown
+ap dot11 24ghz rf-profile AP-RF-24-PISO9
+ coverage data rssi threshold -72
+ coverage voice rssi threshold -72
+ description AP-RF-24-PISO9
+ rate RATE_11M disable
+ rate RATE_12M mandatory
+ rate RATE_1M disable
+ rate RATE_24M mandatory
+ rate RATE_2M disable
+ rate RATE_5_5M disable
+ rate RATE_6M disable
+ rate RATE_9M disable
+ tx-power max 11
+ tx-power min 5
+ no shutdown
+ap dot11 24ghz rf-profile AP-RF-2.4-disable
+ description AP-RF-2.4-disable
+ rate RATE_12M supported
+ rate RATE_24M supported
+ rate RATE_6M supported
+ap dot11 24ghz rf-profile Low_Client_Density_rf_24gh
+ coverage data rssi threshold -90
+ coverage level 2
+ coverage voice rssi threshold -90
+ description "pre configured Low Client Density rfprofile for 2.4gh radio"
+ high-density rx-sop threshold low
+ rate RATE_12M supported
+ rate RATE_24M supported
+ rate RATE_6M supported
+ tx-power v1 threshold -65
+ no shutdown
+ap dot11 24ghz rf-profile High_Client_Density_rf_24gh
+ description "pre configured High Client Density rfprofile for 2.4gh radio"
+ high-density rx-sop threshold medium
+ rate RATE_11M disable
+ rate RATE_12M mandatory
+ rate RATE_1M disable
+ rate RATE_24M supported
+ rate RATE_2M disable
+ rate RATE_5_5M disable
+ rate RATE_6M disable
+ tx-power min 7
+ no shutdown
+ap dot11 24ghz rf-profile Typical_Client_Density_rf_24gh
+ description "pre configured Typical Client Density rfprofile for 2.4gh radio"
+ rate RATE_11M disable
+ rate RATE_12M mandatory
+ rate RATE_1M disable
+ rate RATE_24M supported
+ rate RATE_2M disable
+ rate RATE_5_5M disable
+ rate RATE_6M disable
+ no shutdown
+ap dot11 24ghz rrm channel dca interval 8
+ap dot11 24ghz cac voice acm
+ap dot11 24ghz rate RATE_12M supported
+ap dot11 24ghz rate RATE_24M supported
+ap dot11 24ghz rate RATE_6M supported
+ap dot11 5ghz rf-profile AP-RF-5
+ description AP-RF-5-GRAL
+ high-density rx-sop threshold medium
+ rate RATE_12M mandatory
+ rate RATE_24M mandatory
+ rate RATE_6M disable
+ rate RATE_9M disable
+ tx-power max 14
+ tx-power min 8
+ no shutdown
+ap dot11 5ghz rf-profile AP-RF-5-PISO8
+ description AP-RF-5-PISO8
+ high-density rx-sop threshold medium
+ rate RATE_12M mandatory
+ rate RATE_24M mandatory
+ rate RATE_6M disable
+ rate RATE_9M disable
+ tx-power max 20
+ tx-power min 12
+ no shutdown
+ap dot11 5ghz rf-profile AP-RF-5-PISO9
+ coverage data rssi threshold -72
+ coverage voice rssi threshold -72
+ description AP-RF-5-PISO9
+ high-density rx-sop threshold medium
+ rate RATE_12M mandatory
+ rate RATE_24M mandatory
+ rate RATE_6M disable
+ rate RATE_9M disable
+ tx-power max 14
+ tx-power min 8
+ no shutdown
+ap dot11 6ghz rf-profile default-rf-profile-6ghz
+ description "default rfprofile for 6GHz radio"
+ rate RATE_12M mandatory
+ rate RATE_24M mandatory
+ rate RATE_6M mandatory
+ no shutdown
+ap dot11 5ghz rf-profile Low_Client_Density_rf_5gh
+ coverage data rssi threshold -90
+ coverage level 2
+ coverage voice rssi threshold -90
+ description "pre configured Low Client Density rfprofile for 5gh radio"
+ high-density rx-sop threshold low
+ rate RATE_12M mandatory
+ rate RATE_24M mandatory
+ rate RATE_6M mandatory
+ tx-power v1 threshold -60
+ no shutdown
+ap dot11 5ghz rf-profile High_Client_Density_rf_5gh
+ description "pre configured High Client Density rfprofile for 5gh radio"
+ high-density rx-sop threshold medium
+ rate RATE_12M mandatory
+ rate RATE_24M mandatory
+ rate RATE_6M disable
+ rate RATE_9M disable
+ tx-power min 7
+ tx-power v1 threshold -65
+ no shutdown
+ap dot11 5ghz rf-profile Typical_Client_Density_rf_5gh
+ description "pre configured Typical Density rfprofile for 5gh radio"
+ rate RATE_12M mandatory
+ rate RATE_24M mandatory
+ rate RATE_6M mandatory
+ no shutdown
+ap dot11 5ghz rrm channel dca interval 8
+ap dot11 5ghz cac voice acm
+ap dot11 5ghz rate RATE_12M mandatory
+ap dot11 5ghz rate RATE_24M mandatory
+ap dot11 5ghz rate RATE_6M mandatory
+ap dot11 6ghz cac voice acm
+ap dot11 6ghz rrm monitor measurement 600
+ap tag-source-priority 2 source filter
+ap tag-source-priority 3 source ap
+ap location name AP-PP-LOCL-KOF-TERRA-PISO2
+ ap-eth-mac 6c8b.d352.2b1c
+ ap-eth-mac 6c8b.d352.2b6c
+ ap-eth-mac 6c8b.d352.2d56
+ ap-eth-mac 6c8b.d352.2d5c
+ ap-eth-mac 6c8b.d360.3184
+ ap-eth-mac 6c8b.d360.5f54
+ ap-eth-mac 6c8b.d360.6c0e
+ ap-eth-mac 6c8b.d360.6c10
+ ap-eth-mac 6c8b.d360.6caa
+ ap-eth-mac 6c8b.d360.6cb4
+ ap-eth-mac 6c8b.d360.6cc8
+ ap-eth-mac 6c8b.d360.6d8a
+ ap-eth-mac b811.4b7a.a6ee
+ description AP-PP-LOCL-KOF-TERRA-PISO2
+ tag policy POLICY_TAG_KOF_TERRA_WLC03
+ tag rf RF-TAG-KOF-MEX-TERRA-01
+ tag site SITE-TAG-KOF-MEX-TERRA-01
+ap location name AP-PP-LOCL-KOF-TERRA-PISO4
+ ap-eth-mac 00a6.ca36.2a32
+ ap-eth-mac 00a6.ca36.2a7c
+ ap-eth-mac 00a6.caff.4ada
+ ap-eth-mac 3c13.ccf1.1b02
+ ap-eth-mac 58ac.78f8.7e50
+ ap-eth-mac 58ac.78f8.90ee
+ ap-eth-mac 58ac.78f8.911a
+ ap-eth-mac 643a.ea96.99fc
+ ap-eth-mac 843d.c670.5574
+ ap-eth-mac 843d.c670.5580
+ description AP-PP-LOCL-KOF-TERRA-PISO4
+ tag policy POLICY_TAG_KOF_TERRA_WLC03
+ tag rf RF-TAG-KOF-MEX-TERRA-01
+ tag site SITE-TAG-KOF-MEX-TERRA-01
+ap location name AP-PP-LOCL-KOF-TERRA-PISO5
+ ap-eth-mac 002a.1034.c9ca
+ ap-eth-mac 002a.1034.c9fc
+ ap-eth-mac 0042.68a0.dcb8
+ ap-eth-mac 00a6.ca36.2a66
+ ap-eth-mac 00a6.ca36.2a7a
+ ap-eth-mac 00a6.caff.4276
+ ap-eth-mac 58ac.78f8.7e54
+ ap-eth-mac 643a.ea0d.4d8e
+ ap-eth-mac 843d.c670.5582
+ ap-eth-mac b811.4b7a.a57a
+ description AP-PP-LOCL-KOF-TERRA-PISO5
+ tag policy POLICY_TAG_KOF_TERRA_WLC03
+ tag rf RF-TAG-KOF-MEX-TERRA-01
+ tag site SITE-TAG-KOF-MEX-TERRA-01
+ap location name AP-PP-LOCL-KOF-TERRA-PISO6
+ ap-eth-mac 00a6.ca36.28de
+ ap-eth-mac 00a6.ca36.28ee
+ ap-eth-mac 58ac.78f8.7e48
+ ap-eth-mac 58ac.78f8.906e
+ ap-eth-mac 6c8b.d352.19f2
+ ap-eth-mac 843d.c670.5436
+ ap-eth-mac 843d.c670.5588
+ ap-eth-mac b811.4b7a.a7bc
+ description AP-PP-LOCL-KOF-TERRA-PISO6
+ tag policy POLICY_TAG_KOF_TERRA_WLC03
+ tag rf RF-TAG-KOF-MEX-TERRA-01
+ tag site SITE-TAG-KOF-MEX-TERRA-01
+ap location name AP-PP-LOCL-KOF-TERRA-PISO7
+ ap-eth-mac 6c8b.d352.2bf0
+ ap-eth-mac 6c8b.d352.2c2a
+ ap-eth-mac 6c8b.d352.2c6e
+ ap-eth-mac 6c8b.d352.2d4e
+ ap-eth-mac 6c8b.d352.2dea
+ ap-eth-mac 6c8b.d360.6baa
+ ap-eth-mac 6c8b.d360.6cae
+ ap-eth-mac 6c8b.d360.6df4
+ ap-eth-mac 6c8b.d360.6e36
+ ap-eth-mac 6c8b.d360.6f00
+ description AP-PP-LOCL-KOF-TERRA-PISO7
+ tag policy POLICY_TAG_KOF_TERRA_WLC03
+ tag rf RF-TAG-KOF-MEX-TERRA-01
+ tag site SITE-TAG-KOF-MEX-TERRA-01
+ap location name AP-PP-LOCL-KOF-TERRA-PISO8
+ ap-eth-mac 6c8b.d352.2d4c
+ ap-eth-mac b811.4b7a.65da
+ ap-eth-mac b811.4b7a.9888
+ ap-eth-mac b811.4b7a.a234
+ ap-eth-mac b811.4b7a.a24a
+ ap-eth-mac b811.4b7a.a592
+ ap-eth-mac b811.4b7a.a5da
+ ap-eth-mac b811.4b7a.a5e4
+ ap-eth-mac b811.4b7a.a704
+ ap-eth-mac b811.4b7a.a736
+ ap-eth-mac b811.4b7a.a73c
+ ap-eth-mac b811.4b7a.a740
+ ap-eth-mac b811.4b7a.a76c
+ ap-eth-mac b811.4b7a.a7b8
+ description AP-PP-LOCL-KOF-TERRA-PISO8
+ tag policy POLICY_TAG_KOF_TERRA_WLC03
+ tag rf RF-TAG-KOF-MEX-TERRA-01
+ tag site SITE-TAG-KOF-MEX-TERRA-01
+ap location name AP-PP-LOCL-KOF-TERRA-PISO9
+ ap-eth-mac 00a6.caff.4a6e
+ ap-eth-mac 00a6.caff.4b24
+ ap-eth-mac 00a6.caff.4b46
+ ap-eth-mac 58ac.78f8.908e
+ ap-eth-mac 6c8b.d3c6.cc34
+ ap-eth-mac 843d.c670.5428
+ ap-eth-mac 843d.c670.542e
+ ap-eth-mac 843d.c670.557c
+ description AP-PP-LOCL-KOF-TERRA-PISO9
+ tag policy POLICY_TAG_KOF_TERRA_WLC03
+ tag rf RF-TAG-KOF-MEX-TERRA-PISO9
+ tag site SITE-TAG-KOF-MEX-TERRA-01
+ap location name AP-PP-LOCL-KOF-TERRA-PISO10
+ ap-eth-mac 6c8b.d352.2c32
+ ap-eth-mac 6c8b.d352.2d42
+ ap-eth-mac 6c8b.d352.2d54
+ ap-eth-mac 6c8b.d352.2dec
+ ap-eth-mac 6c8b.d360.6c36
+ ap-eth-mac 6c8b.d360.6c90
+ ap-eth-mac 6c8b.d360.6eb2
+ ap-eth-mac 6c8b.d360.6ec6
+ ap-eth-mac ac3a.6790.ab86
+ ap-eth-mac ec01.d568.45f4
+ ap-eth-mac fc99.47df.c5d3
+ description AP-PP-LOCL-KOF-TERRA-PISO10
+ tag policy POLICY_TAG_KOF_TERRA_WLC03
+ tag rf RF-TAG-KOF-MEX-TERRA-01
+ tag site SITE-TAG-KOF-MEX-TERRA-01
+ap location name AP-PP-LOCL-KOF-TERRA-PISO11
+ ap-eth-mac 643a.ea5a.ca82
+ ap-eth-mac 643a.ea96.99c6
+ ap-eth-mac 643a.ea96.99f0
+ ap-eth-mac b811.4b7a.a5de
+ ap-eth-mac b811.4b7a.a7ca
+ description AP-PP-LOCL-KOF-TERRA-PISO11
+ tag policy POLICY_TAG_KOF_TERRA_WLC03
+ tag rf RF-TAG-KOF-MEX-TERRA-01
+ tag site SITE-TAG-KOF-MEX-TERRA-01
+ap location name AP-PP-LOCL-KOF-TERRA-SOTANO1
+ ap-eth-mac 5057.a844.52cb
+ ap-eth-mac b811.4b7a.a236
+ ap-eth-mac b811.4b7a.a2c2
+ ap-eth-mac b811.4b7a.a580
+ ap-eth-mac b811.4b7a.a5b4
+ ap-eth-mac b811.4b7a.a73a
+ ap-eth-mac b811.4b7a.a746
+ ap-eth-mac b811.4b7a.a78c
+ description AP-PP-LOCL-KOF-TERRA-SOTANO1
+ tag policy POLICY_TAG_KOF_TERRA_WLC03
+ tag rf RF-TAG-KOF-MEX-TERRA-01
+ tag site SITE-TAG-KOF-MEX-TERRA-01
+ap location name AP-PP-LOCL-KOF-TERRA-SOTANO2
+ ap-eth-mac 5057.a87b.577b
+ ap-eth-mac 5057.a89e.9384
+ ap-eth-mac 643a.ea96.996a
+ ap-eth-mac 6c8b.d352.2db2
+ ap-eth-mac 6c8b.d352.2dd4
+ ap-eth-mac 6c8b.d360.6b7c
+ ap-eth-mac 6c8b.d360.6ba6
+ ap-eth-mac 6c8b.d360.6c00
+ ap-eth-mac 6c8b.d360.6ef0
+ ap-eth-mac 6c8b.d360.6f08
+ ap-eth-mac b811.4b7a.a788
+ description AP-PP-LOCL-KOF-TERRA-SOTANO2
+ tag policy POLICY_TAG_KOF_TERRA_WLC03
+ tag rf RF-TAG-KOF-MEX-TERRA-01
+ tag site SITE-TAG-KOF-MEX-TERRA-01
+ap location name AP-PP-LOCL-KOF-TERRA-SOTANO4
+ ap-eth-mac bc4a.56b4.a396
+ description AP-PP-LOCL-KOF-TERRA-SOTANO4
+ tag policy POLICY_TAG_KOF_TERRA_WLC03
+ tag rf RF-TAG-KOF-MEX-TERRA-01
+ tag site SITE-TAG-KOF-MEX-TERRA-01
+ap location name AP-PP-LOCL-KOF-TERRA-MEZZANINE
+ ap-eth-mac 6c8b.d360.6c76
+ ap-eth-mac f4db.e6eb.f3f2
+ description AP-PP-LOCL-KOF-TERRA-MEZZANINE
+ tag policy POLICY_TAG_KOF_TERRA_WLC03
+ tag rf RF-TAG-KOF-MEX-TERRA-01
+ tag site SITE-TAG-KOF-MEX-TERRA-01
+ap location name AP-PP-LOCL-KOF-TERRA-PLANTABAJA
+ ap-eth-mac 4403.a758.caf4
+ ap-eth-mac 4403.a758.ccaa
+ ap-eth-mac b811.4b7a.a220
+ ap-eth-mac b811.4b7a.a5b0
+ ap-eth-mac b811.4b7a.a5d6
+ ap-eth-mac b811.4b7a.a6f6
+ ap-eth-mac b811.4b7a.a70a
+ ap-eth-mac b811.4b7a.a720
+ ap-eth-mac b811.4b7a.a748
+ ap-eth-mac b811.4b7a.a778
+ description AP-PP-LOCL-KOF-TERRA-PLANTABAJA
+ tag policy POLICY_TAG_KOF_TERRA_WLC03
+ tag rf RF-TAG-KOF-MEX-TERRA-01
+ tag site SITE-TAG-KOF-MEX-TERRA-01
+ap profile default-ap-profile
+ description "default ap profile"
+ mgmtuser username jorge password 0 Jorge246 secret 0 Jorge246
+ ssh
+ telnet
+ap profile AP-PROF-KOF-MEX-TERRA-01
+ association-limit 200
+ country MX
+ description "AP Join Profile - KOF MEX TERRA GRAL"
+ mgmtuser username Net0psCR20 password 0 LatanAt8dxc5ops.20 secret 0 LatanAt8dxc5ops.20
+ ntp ip 138.35.151.113
+ ssh
+ telnet
+ timezone use-controller
+ap config 843d.c670.5588
+ap config b811.4b7a.a5e4
+ap 00a6.caff.4b46
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-PISO9
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+ap 20cc.2767.cf84
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-01
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+ap 58ac.78f8.908e
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-PISO9
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+ap 5c64.f17c.013c
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-01
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+ap 643a.ea96.99c6
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-PISO11
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+ap 643a.ea96.99f0
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-PISO11
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+ap 6c8b.d360.6f08
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-PISO11
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+ap 843d.c670.557c
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-PISO9
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+ap 90e9.5e0a.a27c
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-01
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+ap b811.4b7a.a5de
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-PISO11
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+ap b811.4b7a.a5e4
+ap b811.4b7a.a7ca
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-PISO11
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+ap ec01.d568.1126
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-01
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+ap ec01.d568.114a
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-PISO9
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+ap ec01.d569.b06e
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-01
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+ap ec01.d569.b07a
+ policy-tag POLICY_TAG_KOF_TERRA_WLC03
+ rf-tag RF-TAG-KOF-MEX-TERRA-01
+ site-tag SITE-TAG-KOF-MEX-TERRA-01
+trapflags ap crash
+trapflags ap noradiocards
+trapflags ap register
+end
+
+WLC-KOF-MEX-TERR-WC01# 

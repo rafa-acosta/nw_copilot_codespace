@@ -1,0 +1,2849 @@
+version 15.5
+service timestamps debug datetime localtime show-timezone
+service timestamps log datetime localtime show-timezone
+service password-encryption
+service linenumber
+no platform punt-keepalive disable-kernel-core
+platform qos marker-statistics
+platform qos match-statistics per-filter
+platform qos match-statistics per-ace
+platform hardware throughput level 2000000
+!
+hostname GOLDEN_ROUTER
+!
+!
+!
+vrf definition Mgmt-intf
+ !
+ address-family ipv4
+ exit-address-family
+ !
+ address-family ipv6
+ exit-address-family
+!
+card type e1 0 1
+logging count
+logging buffered 500000
+enable secret 5 132465789
+!
+aaa new-model
+!
+!
+!
+aaa group server tacacs+ DXC-GNTA-TACACS
+ server name DXC-GNTA-TACACS-03
+ server name DXC-GNTA-TACACS-04
+!
+aaa authentication password-prompt LOCAL_PASS:
+aaa authentication username-prompt Local_User:
+aaa authentication login default group TACACSServerGroup local
+aaa authentication enable default group TACACSServerGroup enable
+aaa accounting exec default start-stop group TACACSServerGroup
+aaa accounting commands 1 default start-stop group tacacs+
+aaa accounting commands 15 default start-stop group TACACSServerGroup
+!
+!
+!
+!
+!
+!
+aaa session-id common
+clock timezone CST -6 0
+clock summer-time CDT recurring
+!
+!
+!
+
+no ip domain lookup
+ip domain name dxc.com
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+subscriber templating
+multilink bundle-name authenticated
+!
+flow record ip-acct
+ match ipv4 source address
+ match ipv4 destination address
+ collect counter packets long
+ collect counter bytes long
+!
+!
+flow monitor ip-acct
+ cache timeout active 604800
+ record ip-acct
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+voice service voip
+ fax protocol t38 version 0 ls-redundancy 0 hs-redundancy 0 fallback none
+ h323
+  ras rrq dynamic prefixes
+!
+!
+!
+!
+!
+!
+!
+voice-card 0/1
+ codec complexity medium
+ no watchdog
+!
+license udi pid ISR4451-X/K9 sn FOC211855AD
+!
+spanning-tree extend system-id
+!
+username Net0psCR20 privilege 15 secret 5 $1$A4Cd$PPqeNalpGIZb19q6SkHmF.
+username DXCadmin privilege 15 secret 5 $1$LY/J$5vRRi9dqTrIFGfoOw45XJ1
+username tcore privilege 15 secret 5 $1$fMy8$v9HEmUCcFyX47JjGR5cK71
+!
+redundancy
+ mode none
+!
+controller E1 0/1/0
+ framing no-crc4 
+ clock source line primary
+ ds0-group 0 timeslots 1-15,17-31 type e&m-immediate-start
+ description Hacia Avaya KOF AZ36
+!
+controller E1 0/1/1
+ shutdown
+ framing no-crc4 
+ ds0-group 0 timeslots 1-12 type e&m-immediate-start
+ cas-custom 0
+ description Hacia Avaya KOF AZ36
+!
+!
+vlan internal allocation policy ascending
+!
+lldp run
+!
+class-map match-any rpvm_voz_signaling
+ match ip dscp cs3 
+ match ip dscp cs5 
+ match access-group name rpvm_voz_signaling
+class-map match-any rpvm_voz_rtp
+ match ip dscp ef 
+ match access-group name rpvm_voz_rtp
+class-map match-any mark_datos-criticos
+ match access-group name rpvm_datos-criticos
+class-map match-any rpvm_datos-criticos
+ match ip dscp cs2 
+ match ip dscp af31 
+ match ip dscp af32 
+ match ip dscp af33 
+class-map match-any mark_mgmnt
+ match access-group name rpvm_mgmnt
+class-map match-any rpvm_video
+ match ip dscp af41 
+ match ip dscp af42 
+ match ip dscp af43 
+ match access-group name rpvm_video
+class-map match-any mark_video
+ match access-group name rpvm_video
+class-map match-any rpvm_mgmnt
+ match ip dscp cs7 
+ match ip dscp cs6 
+class-map match-any rpvm_business
+ match ip dscp cs1 
+ match ip dscp af21 
+ match ip dscp af22 
+ match ip dscp af23 
+class-map match-any mark_business
+ match access-group name rpvm_business
+class-map match-any rpvm_datos_criticos
+class-map match-any rpvm_voz
+ match ip dscp ef 
+ match access-group name rpvm_voz_rtp
+ match class-map rpvm_voz_signaling
+!
+policy-map rpvm_pb23_out
+ class rpvm_mgmnt
+  bandwidth percent 5 
+  set ip dscp cs6
+ class rpvm_voz
+  priority percent 25
+  set ip dscp ef
+ class rpvm_video
+  bandwidth percent 25 
+  police cir percent 25
+   conform-action transmit 
+   exceed-action transmit 
+  set ip dscp af41
+ class rpvm_datos-criticos
+  bandwidth percent 22 
+  set ip dscp af31
+ class rpvm_business
+  bandwidth percent 7 
+  set ip dscp af21
+ class class-default
+  set dscp default
+policy-map rpvm_l2-shaping_out
+ class class-default
+  shape average 1000000000 50000000 50000000 
+   service-policy rpvm_pb23_out
+policy-map rpvm_pb23_in
+ class rpvm_mgmnt
+  police cir percent 5 conform-action transmit  exceed-action transmit 
+ class rpvm_voz
+  police cir percent 25 conform-action transmit  exceed-action transmit 
+ class rpvm_video
+  police cir percent 25 conform-action transmit  exceed-action transmit 
+ class rpvm_datos-criticos
+  police cir percent 22 conform-action transmit  exceed-action transmit 
+ class rpvm_business
+  police cir percent 7 conform-action transmit  exceed-action transmit 
+ class class-default
+  police cir percent 1 conform-action transmit  exceed-action transmit 
+policy-map rpvm_l2-police_in
+ class class-default
+  police cir 1000000000 bc 50000000 be 50000000
+   service-policy rpvm_pb23_in
+policy-map pb23_lan
+ class rpvm_video
+  set ip dscp af41
+ class mark_datos-criticos
+  set ip dscp af31
+ class mark_business
+  set ip dscp af21
+ class mark_mgmnt
+  set ip dscp cs6
+ class rpvm_voz_signaling
+  set ip dscp cs3
+ class rpvm_voz_rtp
+  set ip dscp ef
+ class class-default
+  set ip dscp default
+!
+!
+!
+!
+!
+!
+interface Loopback0
+ description PARA MONITOREO NMS-VOPI
+ ip address 172.32.1.24 255.255.255.255
+ h323-gateway voip interface
+ h323-gateway voip id FEM_MEX_EDSKOFDIA06 ipaddr 172.32.1.3 1719 priority 5
+ h323-gateway voip id FEM_MEX_EDSKOFDIA07 ipaddr 172.32.1.4 1719 priority 10
+ h323-gateway voip h323-id GOLDEN_ROUTER@femsa.com.mx
+ h323-gateway voip tech-prefix 1#
+ h323-gateway voip bind srcaddr 172.32.1.24
+!
+interface Port-channel21
+ no ip address
+ no negotiation auto
+!
+interface GigabitEthernet0/0/0
+ description CONECTION CON RPV-2111-0007
+ bandwidth 1000000
+ no ip address
+ load-interval 30
+ no negotiation auto
+!
+interface GigabitEthernet0/0/0.632
+ description CNOC CONECTION CON RPV-2111-0007
+ bandwidth 1000000
+ encapsulation dot1Q 632
+ ip address 187.219.162.66 255.255.255.252
+ ip flow monitor ip-acct output
+ ip access-group TACACS in
+ service-policy input rpvm_l2-police_in
+ service-policy output rpvm_l2-shaping_out
+!
+interface GigabitEthernet0/0/1
+ description CONEXION DE DATOS ACTIVA
+ ip address 10.120.186.249 255.255.255.252 secondary
+ ip address 10.120.186.238 255.255.255.252
+ load-interval 30
+ negotiation auto
+ service-policy input pb23_lan
+!
+interface GigabitEthernet0/0/2
+ description Interface overlay con VCE
+ ip address 10.121.20.23 255.255.255.240
+ standby 10 ip 10.121.20.25
+ standby 10 priority 105
+ standby 10 preempt
+ negotiation auto
+!
+interface GigabitEthernet0/0/3
+ no ip address
+ shutdown
+ negotiation auto
+!
+interface Service-Engine0/1/0
+!
+interface GigabitEthernet0
+ vrf forwarding Mgmt-intf
+ no ip address
+ shutdown
+ negotiation auto
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+router bgp 65194
+ bgp log-neighbor-changes
+ network 10.120.186.236 mask 255.255.255.252
+ network 10.120.186.248 mask 255.255.255.252
+ network 10.121.20.16 mask 255.255.255.240
+ network 10.138.6.15 mask 255.255.255.255
+ aggregate-address 192.168.198.0 255.255.254.0 attribute-map RM_KOF_MEX_Summarized_Prefixes
+ aggregate-address 192.168.52.0 255.255.254.0 attribute-map RM_KOF_MEX_Summarized_Prefixes
+ aggregate-address 191.100.208.0 255.255.248.0 attribute-map RM_KOF_MEX_Summarized_Prefixes
+ aggregate-address 172.29.0.0 255.255.0.0 attribute-map RM_KOF_MEX_Summarized_Prefixes
+ aggregate-address 148.91.92.0 255.255.254.0 attribute-map RM_KOF_MEX_Summarized_Prefixes
+ aggregate-address 148.91.82.0 255.255.254.0 attribute-map RM_KOF_MEX_Summarized_Prefixes
+ aggregate-address 145.47.102.0 255.255.255.0 attribute-map RM_KOF_MEX_Summarized_Prefixes
+ aggregate-address 138.35.0.0 255.255.0.0 attribute-map RM_KOF_MEX_Summarized_Prefixes
+ aggregate-address 131.150.196.0 255.255.254.0 attribute-map RM_KOF_MEX_Summarized_Prefixes
+ aggregate-address 131.150.180.0 255.255.254.0 attribute-map RM_KOF_MEX_Summarized_Prefixes
+ neighbor 10.120.186.237 remote-as 65194
+ neighbor 10.120.186.237 password 7 002532042F7928125A73791A1F0B082018
+ neighbor 10.120.186.237 update-source GigabitEthernet0/0/1
+ neighbor 10.120.186.237 next-hop-self
+ neighbor 10.120.186.237 send-community both
+ neighbor 10.120.186.237 soft-reconfiguration inbound
+ neighbor 10.120.186.237 prefix-list control_sdwan_in in
+ neighbor 10.120.186.237 prefix-list control_sdwan_out out
+ neighbor 10.120.186.237 maximum-prefix 5000 90
+ neighbor 187.219.162.65 remote-as 8151
+ neighbor 187.219.162.65 password 7 033708281218327A7722031242332C5B11
+ neighbor 187.219.162.65 timers 10 30
+ neighbor 187.219.162.65 send-community both
+ neighbor 187.219.162.65 allowas-in
+ neighbor 187.219.162.65 soft-reconfiguration inbound
+ neighbor 187.219.162.65 prefix-list ANTILOOP in
+ neighbor 187.219.162.65 prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS out
+ neighbor 187.219.162.65 route-map BLACK in
+ neighbor 187.219.162.65 route-map RM_BGP_OUT_TO_MPLS out
+ neighbor 187.219.162.65 maximum-prefix 5000 90
+ neighbor 187.219.162.65 filter-list 30 in
+ default-information originate
+!
+ip forward-protocol nd
+no ip http server
+no ip http secure-server
+ip tftp source-interface GigabitEthernet0/0/1
+ip route 10.139.49.0 255.255.255.0 187.219.162.65 name SURLEON
+ip route 10.149.125.32 255.255.255.252 187.219.162.65 name Underlay_MPLS_URU
+ip route 131.150.180.0 255.255.254.0 10.120.186.237 name Route_to_Triara_LAN
+ip route 131.150.196.0 255.255.254.0 10.120.186.237 name Route_to_Triara_LAN
+ip route 138.35.0.0 255.255.0.0 10.120.186.237 name Route_to_DXC_Tools
+ip route 138.35.219.99 255.255.255.255 Null0
+ip route 138.35.219.101 255.255.255.255 Null0
+ip route 145.47.102.0 255.255.255.0 10.120.186.237 name Route_to_DXC_Tools
+ip route 148.91.82.0 255.255.254.0 10.120.186.237 name Route_to_DXC_Tools
+ip route 148.91.92.0 255.255.254.0 10.120.186.237 name Route_to_DXC_Tools
+ip route 172.29.0.0 255.255.0.0 10.120.186.237 name Route_to_FEMSA_MTY
+ip route 191.100.208.0 255.255.248.0 10.120.186.237 name Route_to_Triara_LAN
+ip route 192.168.52.0 255.255.254.0 10.120.186.237 name Route_to_FEMSA_MTY
+ip route 192.168.198.0 255.255.254.0 10.120.186.237 name Route_to_FEMSA_MTY
+ip tacacs source-interface GigabitEthernet0/0/1
+ip scp server enable
+!
+ip bgp-community new-format
+ip community-list 1 permit 8151:1026
+ip community-list 1 permit 8151:1026 28513:1281
+ip community-list 1 permit 8151:1026 28513:1281 36017:12076
+ip as-path access-list 10 permit ^$
+ip as-path access-list 20 deny ^8151$
+ip as-path access-list 30 permit 3549
+ip as-path access-list 30 permit 4230
+ip as-path access-list 30 permit 8151
+ip as-path access-list 30 permit 11664
+ip as-path access-list 30 permit 14080
+ip as-path access-list 30 permit 14754
+ip as-path access-list 30 permit 18677
+ip as-path access-list 30 permit 28513
+ip as-path access-list 30 permit 32768
+ip as-path access-list 30 permit 46090
+ip as-path access-list 30 permit 64194
+ip as-path access-list 30 permit 64529
+ip as-path access-list 30 permit 64535
+ip as-path access-list 30 permit 64536
+ip as-path access-list 30 permit 65013
+ip as-path access-list 30 permit 65500
+ip as-path access-list 30 permit 12076
+ip as-path access-list 30 permit 36017
+!
+ip access-list standard ACL-TEST-SUBNETS
+ permit 10.120.186.241
+ permit 172.10.12.23
+ip access-list standard ACL_KOF_Default_Route_Without_Community_TAG
+ remark --- Advertise Default Route In National AS8151 ---
+ permit 0.0.0.0
+!
+ip access-list extended ACL-Access-VTY-DXC
+ remark *** ACL for SSH CLI Access - Coca Cola Femsa ***
+ permit ip host 10.120.186.233 any
+ permit ip host 10.120.186.238 any
+ permit ip host 10.121.10.1 any
+ permit ip host 10.122.0.77 any
+ permit ip host 10.122.1.4 any
+ permit ip 10.122.56.0 0.0.3.255 any
+ permit ip host 10.123.0.1 any
+ permit ip host 10.123.120.103 any
+ permit ip 10.123.242.0 0.0.0.255 any
+ permit ip 10.138.7.0 0.0.0.31 any
+ permit ip 138.35.128.0 0.0.0.255 any
+ permit ip 138.35.216.0 0.0.7.255 any
+ permit ip 138.35.7.0 0.0.0.255 any
+ permit ip 138.35.6.0 0.0.0.255 any
+ permit ip host 187.219.162.66 any
+ permit ip host 187.219.162.70 any
+ permit ip 207.169.17.0 0.0.0.255 any
+ deny   ip any any
+ip access-list extended QLIK-ACL
+ permit ip host 10.138.3.20 any
+ permit ip host 10.153.103.151 any
+ip access-list extended business
+ permit tcp any eq www any
+ permit tcp any any eq www
+ permit tcp any eq 3000 any
+ permit tcp any any eq 3000
+ permit tcp any range 3003 3004 any
+ permit tcp any any range 3003 3004
+ permit tcp any eq 3006 any
+ permit tcp any any eq 3006
+ permit tcp any range 3008 3011 any
+ permit tcp any any range 3008 3011
+ permit tcp any range 3013 3014 any
+ permit tcp any any range 3013 3014
+ permit tcp any range 3016 3017 any
+ permit tcp any any range 3016 3017
+ permit tcp any range 3100 3104 any
+ permit tcp any any range 3100 3104
+ permit udp any eq 58000 any
+ permit udp any any eq 58000
+ permit tcp any eq 58383 any
+ permit tcp any any eq 58383
+ permit udp any eq 58383 any
+ permit udp any any eq 58383
+ permit tcp any eq 59015 any
+ permit tcp any any eq 59015
+ permit tcp any range 59020 59021 any
+ permit tcp any any range 59020 59021
+ip access-list extended prueba
+ permit tcp any any eq pop3
+ permit ip host 10.120.70.51 any log
+ permit ip any host 10.120.70.51 log
+ permit ip any any
+ip access-list extended rpvm_business
+ permit tcp any host 10.122.88.33 eq 1352
+ permit tcp any host 10.122.82.24 eq 1352
+ permit tcp any host 10.122.82.26 eq 1352
+ permit tcp any host 10.123.121.15 eq 1352
+ permit tcp any host 10.122.0.21 eq 1352
+ permit tcp any host 10.122.0.22 eq 1352
+ permit tcp any host 10.122.140.45 eq 1352
+ permit tcp any host 131.150.181.112 eq 1352
+ permit tcp any host 10.124.0.38 eq 1352
+ permit tcp any host 10.124.0.38 eq www
+ permit tcp any host 10.124.0.39 eq 1352
+ permit tcp any host 10.124.0.39 eq www
+ permit ip host 10.121.10.131 any
+ permit ip host 10.121.10.132 any
+ permit ip host 10.121.10.133 any
+ permit ip host 10.121.10.134 any
+ permit ip host 10.121.10.135 any
+ permit ip host 10.121.10.136 any
+ permit ip host 10.121.10.137 any
+ permit ip host 10.121.10.138 any
+ permit ip host 10.121.10.139 any
+ permit ip host 10.121.10.140 any
+ permit ip host 10.121.10.141 any
+ permit tcp any host 10.123.121.13 eq 1352
+ permit tcp any host 10.124.96.32 eq 1352
+ permit tcp any host 10.124.96.32 eq www
+ permit ip 145.47.0.0 0.0.255.255 10.122.82.0 0.0.0.255
+ permit ip 145.47.0.0 0.0.255.255 172.17.9.0 0.0.0.255
+ permit ip 145.47.0.0 0.0.255.255 190.0.0.0 0.31.255.255
+ permit ip 145.47.0.0 0.0.255.255 200.212.34.0 0.0.0.255
+ permit ip 10.247.128.0 0.0.127.255 10.122.82.0 0.0.0.255
+ permit ip 10.247.128.0 0.0.127.255 172.17.9.0 0.0.0.255
+ permit ip 10.247.128.0 0.0.127.255 190.0.0.0 0.31.255.255
+ permit ip 10.247.128.0 0.0.127.255 200.212.34.0 0.0.0.255
+ permit ip 10.193.0.0 0.0.255.255 10.122.82.0 0.0.0.255
+ permit ip 10.193.0.0 0.0.255.255 172.17.9.0 0.0.0.255
+ permit ip 10.193.0.0 0.0.255.255 190.0.0.0 0.31.255.255
+ permit ip 10.193.0.0 0.0.255.255 200.212.34.0 0.0.0.255
+ permit ip 10.194.0.0 0.0.255.255 10.122.82.0 0.0.0.255
+ permit ip 10.194.0.0 0.0.255.255 172.17.9.0 0.0.0.255
+ permit ip 10.194.0.0 0.0.255.255 190.0.0.0 0.31.255.255
+ permit ip 10.194.0.0 0.0.255.255 200.212.34.0 0.0.0.255
+ permit ip host 10.121.10.124 any
+ permit tcp any eq 8443 any
+ permit tcp any any eq 8443
+ permit tcp any any range 3001 3002
+ permit tcp any range 3001 3002 any
+ permit tcp any eq 9080 any
+ permit tcp any any eq 9080
+ permit tcp any eq www any
+ permit tcp any any eq www
+ permit tcp any eq 443 any
+ permit tcp any any eq 443
+ permit tcp any eq 8088 any
+ permit tcp any any eq 8088
+ permit tcp any eq 59011 any
+ permit tcp any any eq 59011
+ permit tcp any eq 59103 any
+ permit tcp any any eq 59103
+ permit tcp any eq 52102 any
+ permit tcp any any eq 52102
+ permit tcp any eq 1433 any
+ permit tcp any any eq 1433
+ permit tcp any eq 2303 any
+ permit tcp any any eq 2303
+ permit tcp any eq 52103 any
+ permit tcp any any eq 52103
+ permit tcp any eq 59100 any
+ permit tcp any any eq 59100
+ permit tcp any eq 59102 any
+ permit tcp any any eq 59102
+ permit udp any eq tftp any
+ permit udp any any eq tftp
+ permit tcp any eq 3804 any
+ permit tcp any any eq 3804
+ permit tcp any eq 6970 any
+ permit tcp any any eq 6970
+ permit tcp any range 50040 50059 any
+ permit tcp any any range 50040 50059
+ permit udp any range 50040 50059 any
+ permit udp any any range 50040 50059
+ip access-list extended rpvm_datos-criticos
+ permit ip host 191.100.213.146 any
+ permit ip any host 191.100.213.146
+ permit ip host 191.100.211.143 any
+ permit ip any host 191.100.211.143
+ permit ip host 191.100.211.146 any
+ permit ip any host 191.100.211.146
+ permit ip host 191.100.211.144 any
+ permit ip any host 191.100.211.144
+ permit ip host 191.100.212.143 any
+ permit ip any host 191.100.212.143
+ permit tcp 131.150.197.0 0.0.0.255 range 3200 3213 any
+ permit tcp any 131.150.197.0 0.0.0.255 range 3200 3213
+ permit tcp 131.150.197.0 0.0.0.255 range 3300 3313 any
+ permit tcp any 131.150.197.0 0.0.0.255 range 3300 3313
+ permit ip host 10.50.80.41 any
+ permit ip any host 10.50.80.41
+ permit ip host 10.50.80.42 any
+ permit ip any host 10.50.80.42
+ permit ip host 10.138.6.13 any
+ permit ip any host 10.138.6.13
+ permit ip host 10.138.6.14 any
+ permit ip any host 10.138.6.14
+ permit tcp 10.138.2.0 0.0.0.255 any
+ permit tcp any 10.138.2.0 0.0.0.255
+ permit tcp 10.138.2.0 0.0.0.255 range 3200 3213 any
+ permit tcp any 10.138.2.0 0.0.0.255 range 3200 3213
+ permit tcp 10.138.2.0 0.0.0.255 range 3300 3313 any
+ permit tcp any 10.138.2.0 0.0.0.255 range 3300 3313
+ permit tcp 10.138.2.0 0.0.0.255 range 3800 3813 any
+ permit tcp any 10.138.2.0 0.0.0.255 range 3800 3813
+ permit tcp 10.138.3.0 0.0.0.255 range 3200 3213 any
+ permit tcp any 10.138.3.0 0.0.0.255 range 3200 3213
+ permit tcp 10.138.3.0 0.0.0.255 range 3300 3313 any
+ permit tcp any 10.138.3.0 0.0.0.255 range 3300 3313
+ permit ip host 10.138.23.15 any
+ permit ip any host 10.138.23.15
+ permit ip host 10.138.23.16 any
+ permit ip any host 10.138.23.16
+ permit ip host 10.138.23.11 any
+ permit ip any host 10.138.23.11
+ permit ip host 10.138.23.12 any
+ permit ip any host 10.138.23.12
+ permit ip host 10.138.23.53 any
+ permit ip any host 10.138.23.53
+ permit ip host 10.138.23.54 any
+ permit ip any host 10.138.23.54
+ permit ip host 10.121.202.222 any
+ permit ip any host 10.121.202.222
+ permit ip host 10.121.202.223 any
+ permit ip any host 10.121.202.223
+ permit ip host 10.121.202.155 any
+ permit ip any host 10.121.202.155
+ permit ip host 10.121.202.156 any
+ permit ip any host 10.121.202.156
+ permit ip host 10.138.19.15 any
+ permit ip any host 10.138.19.15
+ permit ip host 10.138.19.17 any
+ permit ip any host 10.138.19.17
+ permit ip host 10.138.19.64 any
+ permit ip any host 10.138.19.64
+ permit ip host 10.138.19.66 any
+ permit ip any host 10.138.19.66
+ permit ip host 10.138.20.15 any
+ permit ip any host 10.138.20.15
+ permit ip host 10.138.20.17 any
+ permit ip any host 10.138.20.17
+ permit ip host 10.138.20.125 any
+ permit ip any host 10.138.20.125
+ permit ip host 10.138.20.127 any
+ permit ip any host 10.138.20.127
+ permit ip host 10.138.20.85 any
+ permit ip any host 10.138.20.85
+ permit ip host 10.138.20.87 any
+ permit ip any host 10.138.20.87
+ permit ip host 10.138.6.104 any
+ permit ip any host 10.138.6.104
+ permit ip host 10.138.6.105 any
+ permit ip any host 10.138.6.105
+ permit ip host 10.138.6.108 any
+ permit ip any host 10.138.6.108
+ permit ip host 10.138.6.109 any
+ permit ip any host 10.138.6.109
+ permit ip host 10.138.6.18 any
+ permit ip any host 10.138.6.18
+ permit ip host 10.138.6.19 any
+ permit ip any host 10.138.6.19
+ permit ip host 10.138.6.25 any
+ permit ip any host 10.138.6.25
+ permit ip host 10.138.6.26 any
+ permit ip any host 10.138.6.26
+ permit ip host 10.138.6.27 any
+ permit ip any host 10.138.6.27
+ permit ip host 10.138.6.28 any
+ permit ip any host 10.138.6.28
+ permit ip host 10.138.6.29 any
+ permit ip any host 110.138.6.29
+ permit ip host 10.138.6.190 any
+ permit ip any host 10.138.6.190
+ permit ip any 10.155.0.0 0.0.255.255
+ip access-list extended rpvm_video
+ permit ip host 10.130.0.10 10.30.19.0 0.0.0.15
+ permit ip host 10.130.0.10 10.30.20.0 0.0.0.15
+ permit ip host 10.130.0.10 10.30.21.0 0.0.0.15
+ permit ip host 10.130.0.10 10.30.22.0 0.0.0.15
+ permit ip host 10.130.0.10 10.30.23.0 0.0.0.15
+ permit ip host 10.130.0.10 10.30.27.64 0.0.0.63
+ permit ip host 10.130.0.10 10.30.17.0 0.0.0.15
+ permit ip host 10.130.0.10 10.30.18.0 0.0.0.15
+ permit ip host 10.130.0.11 10.30.19.0 0.0.0.15
+ permit ip host 10.130.0.11 10.30.20.0 0.0.0.15
+ permit ip host 10.130.0.11 10.30.21.0 0.0.0.15
+ permit ip host 10.130.0.11 10.30.22.0 0.0.0.15
+ permit ip host 10.130.0.11 10.30.23.0 0.0.0.15
+ permit ip host 10.130.0.11 10.30.27.64 0.0.0.63
+ permit ip host 10.130.0.11 10.30.17.0 0.0.0.15
+ permit ip host 10.130.0.11 10.30.18.0 0.0.0.15
+ permit ip host 10.130.0.12 10.30.19.0 0.0.0.15
+ permit ip host 10.130.0.12 10.30.20.0 0.0.0.15
+ permit ip host 10.130.0.12 10.30.21.0 0.0.0.15
+ permit ip host 10.130.0.12 10.30.22.0 0.0.0.15
+ permit ip host 10.130.0.12 10.30.23.0 0.0.0.15
+ permit ip host 10.130.0.12 10.30.27.64 0.0.0.63
+ permit ip host 10.130.0.12 10.30.17.0 0.0.0.15
+ permit ip host 10.130.0.12 10.30.18.0 0.0.0.15
+ permit ip host 10.130.0.13 10.30.19.0 0.0.0.15
+ permit ip host 10.130.0.13 10.30.20.0 0.0.0.15
+ permit ip host 10.130.0.13 10.30.21.0 0.0.0.15
+ permit ip host 10.130.0.13 10.30.22.0 0.0.0.15
+ permit ip host 10.130.0.13 10.30.23.0 0.0.0.15
+ permit ip host 10.130.0.13 10.30.27.64 0.0.0.63
+ permit ip host 10.130.0.13 10.30.17.0 0.0.0.15
+ permit ip host 10.130.0.13 10.30.18.0 0.0.0.15
+ permit ip host 10.130.0.14 10.30.19.0 0.0.0.15
+ permit ip host 10.130.0.14 10.30.20.0 0.0.0.15
+ permit ip host 10.130.0.14 10.30.21.0 0.0.0.15
+ permit ip host 10.130.0.14 10.30.22.0 0.0.0.15
+ permit ip host 10.130.0.14 10.30.23.0 0.0.0.15
+ permit ip host 10.130.0.14 10.30.27.64 0.0.0.63
+ permit ip host 10.130.0.14 10.30.17.0 0.0.0.15
+ permit ip host 10.130.0.14 10.30.18.0 0.0.0.15
+ permit ip host 10.130.0.15 10.30.19.0 0.0.0.15
+ permit ip host 10.130.0.15 10.30.20.0 0.0.0.15
+ permit ip host 10.130.0.15 10.30.21.0 0.0.0.15
+ permit ip host 10.130.0.15 10.30.22.0 0.0.0.15
+ permit ip host 10.130.0.15 10.30.23.0 0.0.0.15
+ permit ip host 10.130.0.15 10.30.27.64 0.0.0.63
+ permit ip host 10.130.0.15 10.30.17.0 0.0.0.15
+ permit ip host 10.130.0.15 10.30.18.0 0.0.0.15
+ permit ip host 10.130.0.16 10.30.19.0 0.0.0.15
+ permit ip host 10.130.0.16 10.30.20.0 0.0.0.15
+ permit ip host 10.130.0.16 10.30.21.0 0.0.0.15
+ permit ip host 10.130.0.16 10.30.22.0 0.0.0.15
+ permit ip host 10.130.0.16 10.30.23.0 0.0.0.15
+ permit ip host 10.130.0.16 10.30.27.64 0.0.0.63
+ permit ip host 10.130.0.16 10.30.17.0 0.0.0.15
+ permit ip host 10.130.0.16 10.30.18.0 0.0.0.15
+ permit ip host 10.130.16.9 10.30.19.0 0.0.0.15
+ permit ip host 10.130.16.9 10.30.20.0 0.0.0.15
+ permit ip host 10.130.16.9 10.30.21.0 0.0.0.15
+ permit ip host 10.130.16.9 10.30.22.0 0.0.0.15
+ permit ip host 10.130.16.9 10.30.23.0 0.0.0.15
+ permit ip host 10.130.16.9 10.30.27.64 0.0.0.63
+ permit ip host 10.130.16.9 10.30.17.0 0.0.0.15
+ permit ip host 10.130.16.9 10.30.18.0 0.0.0.15
+ permit ip host 10.130.16.10 10.30.19.0 0.0.0.15
+ permit ip host 10.130.16.10 10.30.20.0 0.0.0.15
+ permit ip host 10.130.16.10 10.30.21.0 0.0.0.15
+ permit ip host 10.130.16.10 10.30.22.0 0.0.0.15
+ permit ip host 10.130.16.10 10.30.23.0 0.0.0.15
+ permit ip host 10.130.16.10 10.30.27.64 0.0.0.63
+ permit ip host 10.130.16.10 10.30.17.0 0.0.0.15
+ permit ip host 10.130.16.10 10.30.18.0 0.0.0.15
+ permit ip host 10.130.16.11 10.30.19.0 0.0.0.15
+ permit ip host 10.130.16.11 10.30.20.0 0.0.0.15
+ permit ip host 10.130.16.11 10.30.21.0 0.0.0.15
+ permit ip host 10.130.16.11 10.30.22.0 0.0.0.15
+ permit ip host 10.130.16.11 10.30.23.0 0.0.0.15
+ permit ip host 10.130.16.11 10.30.27.64 0.0.0.63
+ permit ip host 10.130.16.11 10.30.17.0 0.0.0.15
+ permit ip host 10.130.16.11 10.30.18.0 0.0.0.15
+ permit ip host 10.130.16.12 10.30.19.0 0.0.0.15
+ permit ip host 10.130.16.12 10.30.20.0 0.0.0.15
+ permit ip host 10.130.16.12 10.30.21.0 0.0.0.15
+ permit ip host 10.130.16.12 10.30.22.0 0.0.0.15
+ permit ip host 10.130.16.12 10.30.23.0 0.0.0.15
+ permit ip host 10.130.16.12 10.30.27.64 0.0.0.63
+ permit ip host 10.130.16.12 10.30.17.0 0.0.0.15
+ permit ip host 10.130.16.12 10.30.18.0 0.0.0.15
+ permit ip host 10.130.16.14 10.30.19.0 0.0.0.15
+ permit ip host 10.130.16.14 10.30.20.0 0.0.0.15
+ permit ip host 10.130.16.14 10.30.21.0 0.0.0.15
+ permit ip host 10.130.16.14 10.30.22.0 0.0.0.15
+ permit ip host 10.130.16.14 10.30.23.0 0.0.0.15
+ permit ip host 10.130.16.14 10.30.27.64 0.0.0.63
+ permit ip host 10.130.16.14 10.30.17.0 0.0.0.15
+ permit ip host 10.130.16.14 10.30.18.0 0.0.0.15
+ permit ip host 10.130.16.15 10.30.19.0 0.0.0.15
+ permit ip host 10.130.16.15 10.30.20.0 0.0.0.15
+ permit ip host 10.130.16.15 10.30.21.0 0.0.0.15
+ permit ip host 10.130.16.15 10.30.22.0 0.0.0.15
+ permit ip host 10.130.16.15 10.30.23.0 0.0.0.15
+ permit ip host 10.130.16.15 10.30.27.64 0.0.0.63
+ permit ip host 10.130.16.15 10.30.17.0 0.0.0.15
+ permit ip host 10.130.16.15 10.30.18.0 0.0.0.15
+ permit ip host 10.130.16.16 10.30.19.0 0.0.0.15
+ permit ip host 10.130.16.16 10.30.20.0 0.0.0.15
+ permit ip host 10.130.16.16 10.30.21.0 0.0.0.15
+ permit ip host 10.130.16.16 10.30.22.0 0.0.0.15
+ permit ip host 10.130.16.16 10.30.23.0 0.0.0.15
+ permit ip host 10.130.16.16 10.30.27.64 0.0.0.63
+ permit ip host 10.130.16.16 10.30.17.0 0.0.0.15
+ permit ip host 10.130.16.16 10.30.18.0 0.0.0.15
+ permit ip host 10.130.16.17 10.30.19.0 0.0.0.15
+ permit ip host 10.130.16.17 10.30.20.0 0.0.0.15
+ permit ip host 10.130.16.17 10.30.21.0 0.0.0.15
+ permit ip host 10.130.16.17 10.30.22.0 0.0.0.15
+ permit ip host 10.130.16.17 10.30.23.0 0.0.0.15
+ permit ip host 10.130.16.17 10.30.27.64 0.0.0.63
+ permit ip host 10.130.16.17 10.30.17.0 0.0.0.15
+ permit ip host 10.130.16.17 10.30.18.0 0.0.0.15
+ permit ip host 10.130.16.18 10.30.19.0 0.0.0.15
+ permit ip host 10.130.16.18 10.30.20.0 0.0.0.15
+ permit ip host 10.130.16.18 10.30.21.0 0.0.0.15
+ permit ip host 10.130.16.18 10.30.22.0 0.0.0.15
+ permit ip host 10.130.16.18 10.30.23.0 0.0.0.15
+ permit ip host 10.130.16.18 10.30.27.64 0.0.0.63
+ permit ip host 10.130.16.18 10.30.17.0 0.0.0.15
+ permit ip host 10.130.16.18 10.30.18.0 0.0.0.159
+ permit ip host 10.130.16.19 10.30.19.0 0.0.0.15
+ permit ip host 10.130.16.19 10.30.20.0 0.0.0.15
+ permit ip host 10.130.16.19 10.30.21.0 0.0.0.15
+ permit ip host 10.130.16.19 10.30.22.0 0.0.0.15
+ permit ip host 10.130.16.19 10.30.23.0 0.0.0.15
+ permit ip host 10.130.16.19 10.30.27.64 0.0.0.63
+ permit ip host 10.130.16.19 10.30.17.0 0.0.0.15
+ permit ip host 10.130.16.19 10.30.18.0 0.0.0.15
+ permit ip host 10.130.16.20 10.30.19.0 0.0.0.15
+ permit ip host 10.130.16.20 10.30.20.0 0.0.0.15
+ permit ip host 10.130.16.20 10.30.21.0 0.0.0.15
+ permit ip host 10.130.16.20 10.30.22.0 0.0.0.15
+ permit ip host 10.130.16.20 10.30.23.0 0.0.0.15
+ permit ip host 10.130.16.20 10.30.27.64 0.0.0.63
+ permit ip host 10.130.16.20 10.30.17.0 0.0.0.15
+ permit ip host 10.130.16.20 10.30.18.0 0.0.0.15
+ permit ip host 10.130.16.21 10.30.19.0 0.0.0.15
+ permit ip host 10.130.16.21 10.30.20.0 0.0.0.15
+ permit ip host 10.130.16.21 10.30.21.0 0.0.0.15
+ permit ip host 10.130.16.21 10.30.22.0 0.0.0.15
+ permit ip host 10.130.16.21 10.30.23.0 0.0.0.15
+ permit ip host 10.130.16.21 10.30.27.64 0.0.0.63
+ permit ip host 10.130.16.21 10.30.17.0 0.0.0.15
+ permit ip host 10.130.16.21 10.30.18.0 0.0.0.15
+ permit ip host 10.130.0.10 host 10.130.8.11
+ permit ip host 10.130.0.10 host 10.130.8.12
+ permit ip host 10.130.0.10 host 10.130.8.13
+ permit ip host 10.130.0.10 host 10.130.8.14
+ permit ip host 10.130.0.11 host 10.130.8.10
+ permit ip host 10.130.0.11 host 10.130.8.11
+ permit ip host 10.130.0.11 host 10.130.8.12
+ permit ip host 10.130.0.11 host 10.130.8.13
+ permit ip host 10.130.0.11 host 10.130.8.14
+ permit ip host 10.130.0.12 host 10.130.8.10
+ permit ip host 10.130.0.12 host 10.130.8.11
+ permit ip host 10.130.0.12 host 10.130.8.12
+ permit ip host 10.130.0.12 host 10.130.8.13
+ permit ip host 10.130.0.12 host 10.130.8.14
+ permit ip host 10.130.0.13 host 10.130.8.10
+ permit ip host 10.130.0.13 host 10.130.8.11
+ permit ip host 10.130.0.13 host 10.130.8.12
+ permit ip host 10.130.0.13 host 10.130.8.13
+ permit ip host 10.130.0.13 host 10.130.8.14
+ permit ip host 10.130.0.14 host 10.130.8.10
+ permit ip host 10.130.0.14 host 10.130.8.11
+ permit ip host 10.130.0.14 host 10.130.8.12
+ permit ip host 10.130.0.14 host 10.130.8.13
+ permit ip host 10.130.0.14 host 10.130.8.14
+ permit ip host 10.130.0.15 host 10.130.8.10
+ permit ip host 10.130.0.15 host 10.130.8.11
+ permit ip host 10.130.0.15 host 10.130.8.12
+ permit ip host 10.130.0.15 host 10.130.8.13
+ permit ip host 10.130.0.15 host 10.130.8.14
+ permit ip host 10.130.0.16 host 10.130.8.10
+ permit ip host 10.130.0.16 host 10.130.8.11
+ permit ip host 10.130.0.16 host 10.130.8.12
+ permit ip host 10.130.0.16 host 10.130.8.13
+ permit ip host 10.130.0.16 host 10.130.8.14
+ permit ip host 10.130.16.9 host 10.130.8.10
+ permit ip host 10.130.16.9 host 10.130.8.11
+ permit ip host 10.130.16.9 host 10.130.8.12
+ permit ip host 10.130.16.9 host 10.130.8.13
+ permit ip host 10.130.16.9 host 10.130.8.14
+ permit ip host 10.130.16.10 host 10.130.8.10
+ permit ip host 10.130.16.10 host 10.130.8.11
+ permit ip host 10.130.16.10 host 10.130.8.12
+ permit ip host 10.130.16.10 host 10.130.8.13
+ permit ip host 10.130.16.10 host 10.130.8.14
+ permit ip host 10.130.16.11 host 10.130.8.10
+ permit ip host 10.130.16.11 host 10.130.8.11
+ permit ip host 10.130.16.11 host 10.130.8.12
+ permit ip host 10.130.16.11 host 10.130.8.13
+ permit ip host 10.130.16.11 host 10.130.8.14
+ permit ip host 10.130.16.12 host 10.130.8.10
+ permit ip host 10.130.16.12 host 10.130.8.11
+ permit ip host 10.130.16.12 host 10.130.8.12
+ permit ip host 10.130.16.12 host 10.130.8.13
+ permit ip host 10.130.16.12 host 10.130.8.14
+ permit ip host 10.130.16.13 host 10.130.8.10
+ permit ip host 10.130.16.13 host 10.130.8.11
+ permit ip host 10.130.16.13 host 10.130.8.12
+ permit ip host 10.130.16.13 host 10.130.8.13
+ permit ip host 10.130.16.13 host 10.130.8.14
+ permit ip host 10.130.16.14 host 10.130.8.10
+ permit ip host 10.130.16.14 host 10.130.8.11
+ permit ip host 10.130.16.14 host 10.130.8.12
+ permit ip host 10.130.16.14 host 10.130.8.13
+ permit ip host 10.130.16.14 host 10.130.8.14
+ permit ip host 10.130.16.15 host 10.130.8.10
+ permit ip host 10.130.16.15 host 10.130.8.11
+ permit ip host 10.130.16.15 host 10.130.8.12
+ permit ip host 10.130.16.15 host 10.130.8.13
+ permit ip host 10.130.16.15 host 10.130.8.14
+ permit ip host 10.130.16.16 host 10.130.8.10
+ permit ip host 10.130.16.16 host 10.130.8.11
+ permit ip host 10.130.16.16 host 10.130.8.12
+ permit ip host 10.130.16.16 host 10.130.8.13
+ permit ip host 10.130.16.16 host 10.130.8.14
+ permit ip host 10.130.16.17 host 10.130.8.10
+ permit ip host 10.130.16.17 host 10.130.8.11
+ permit ip host 10.130.16.17 host 10.130.8.12
+ permit ip host 10.130.16.17 host 10.130.8.13
+ permit ip host 10.130.16.17 host 10.130.8.14
+ permit ip host 10.130.16.18 host 10.130.8.10
+ permit ip host 10.130.16.18 host 10.130.8.11
+ permit ip host 10.130.16.18 host 10.130.8.12
+ permit ip host 10.130.16.18 host 10.130.8.13
+ permit ip host 10.130.16.18 host 10.130.8.14
+ permit ip host 10.130.16.19 host 10.130.8.10
+ permit ip host 10.130.16.19 host 10.130.8.11
+ permit ip host 10.130.16.19 host 10.130.8.12
+ permit ip host 10.130.16.19 host 10.130.8.13
+ permit ip host 10.130.16.19 host 10.130.8.14
+ permit ip host 10.130.16.20 host 10.130.8.10
+ permit ip host 10.130.16.20 host 10.130.8.11
+ permit ip host 10.130.16.20 host 10.130.8.12
+ permit ip host 10.130.16.20 host 10.130.8.13
+ permit ip host 10.130.16.20 host 10.130.8.14
+ permit ip host 10.130.16.21 host 10.130.8.10
+ permit ip host 10.130.16.21 host 10.130.8.11
+ permit ip host 10.130.16.21 host 10.130.8.12
+ permit ip host 10.130.16.21 host 10.130.8.13
+ permit ip host 10.130.16.21 host 10.130.8.14
+ permit ip host 10.130.0.10 host 10.130.8.10
+ permit ip host 10.130.0.10 host 10.122.0.99
+ permit ip host 10.130.0.10 host 10.122.0.100
+ permit ip host 10.130.0.11 host 10.122.0.99
+ permit ip host 10.130.0.11 host 10.122.0.100
+ permit ip host 10.130.0.12 host 10.122.0.99
+ permit ip host 10.130.0.12 host 10.122.0.100
+ permit ip host 10.130.0.13 host 10.122.0.99
+ permit ip host 10.130.0.13 host 10.122.0.100
+ permit ip host 10.130.0.14 host 10.122.0.99
+ permit ip host 10.130.0.14 host 10.122.0.100
+ permit ip host 10.130.0.15 host 10.122.0.99
+ permit ip host 10.130.0.15 host 10.122.0.100
+ permit ip host 10.130.0.16 host 10.122.0.99
+ permit ip host 10.130.0.16 host 10.122.0.100
+ permit ip host 10.130.16.9 host 10.122.0.99
+ permit ip host 10.130.16.9 host 10.122.0.100
+ permit ip host 10.130.16.10 host 10.122.0.99
+ permit ip host 10.130.16.10 host 10.122.0.100
+ permit ip host 10.130.16.11 host 10.122.0.99
+ permit ip host 10.130.16.11 host 10.122.0.100
+ permit ip host 10.130.16.12 host 10.122.0.99
+ permit ip host 10.130.16.12 host 10.122.0.100
+ permit ip host 10.130.16.13 host 10.122.0.99
+ permit ip host 10.130.16.13 host 10.122.0.100
+ permit ip host 10.130.16.14 host 10.122.0.99
+ permit ip host 10.130.16.14 host 10.122.0.100
+ permit ip host 10.130.16.15 host 10.122.0.99
+ permit ip host 10.130.16.15 host 10.122.0.100
+ permit ip host 10.130.16.16 host 10.122.0.99
+ permit ip host 10.130.16.16 host 10.122.0.100
+ permit ip host 10.130.16.17 host 10.122.0.99
+ permit ip host 10.130.16.17 host 10.122.0.100
+ permit ip host 10.130.16.18 host 10.122.0.99
+ permit ip host 10.130.16.18 host 10.122.0.100
+ permit ip host 10.130.16.19 host 10.122.0.99
+ permit ip host 10.130.16.19 host 10.122.0.100
+ permit ip host 10.130.16.20 host 10.122.0.99
+ permit ip host 10.130.16.20 host 10.122.0.100
+ permit ip host 10.130.16.21 host 10.122.0.99
+ permit ip host 10.130.16.21 host 10.122.0.100
+ permit ip host 10.130.0.10 host 10.122.82.240
+ permit ip host 10.130.0.10 host 10.122.88.100
+ permit ip host 10.130.0.10 host 10.122.95.40
+ permit ip host 10.130.0.10 host 10.122.95.41
+ permit ip host 10.130.0.10 host 10.122.95.85
+ permit ip host 10.130.0.10 host 10.122.100.34
+ permit ip host 10.130.0.11 host 10.122.82.240
+ permit ip host 10.130.0.11 host 10.122.88.100
+ permit ip host 10.130.0.11 host 10.122.95.40
+ permit ip host 10.130.0.11 host 10.122.95.41
+ permit ip host 10.130.0.11 host 10.122.95.85
+ permit ip host 10.130.0.11 host 10.122.100.34
+ permit ip host 10.130.0.12 host 10.122.82.240
+ permit ip host 10.130.0.12 host 10.122.88.100
+ permit ip host 10.130.0.12 host 10.122.95.40
+ permit ip host 10.130.0.12 host 10.122.95.41
+ permit ip host 10.130.0.12 host 10.122.95.85
+ permit ip host 10.130.0.12 host 10.122.100.34
+ permit ip host 10.130.0.13 host 10.122.82.240
+ permit ip host 10.130.0.13 host 10.122.88.100
+ permit ip host 10.130.0.13 host 10.122.95.40
+ permit ip host 10.130.0.13 host 10.122.95.41
+ permit ip host 10.130.0.13 host 10.122.95.85
+ permit ip host 10.130.0.13 host 10.122.100.34
+ permit ip host 10.130.0.14 host 10.122.82.240
+ permit ip host 10.130.0.14 host 10.122.88.100
+ permit ip host 10.130.0.14 host 10.122.95.40
+ permit ip host 10.130.0.14 host 10.122.95.41
+ permit ip host 10.130.0.14 host 10.122.95.85
+ permit ip host 10.130.0.14 host 10.122.100.34
+ permit ip host 10.130.0.15 host 10.122.82.240
+ permit ip host 10.130.0.15 host 10.122.88.100
+ permit ip host 10.130.0.15 host 10.122.95.40
+ permit ip host 10.130.0.15 host 10.122.95.41
+ permit ip host 10.130.0.15 host 10.122.95.85
+ permit ip host 10.130.0.15 host 10.122.100.34
+ permit ip host 10.130.0.16 host 10.122.82.240
+ permit ip host 10.130.0.16 host 10.122.88.100
+ permit ip host 10.130.0.16 host 10.122.95.40
+ permit ip host 10.130.0.16 host 10.122.95.41
+ permit ip host 10.130.0.16 host 10.122.95.85
+ permit ip host 10.130.0.16 host 10.122.100.34
+ permit ip host 10.130.16.9 host 10.122.82.240
+ permit ip host 10.130.16.9 host 10.122.88.100
+ permit ip host 10.130.16.9 host 10.122.95.40
+ permit ip host 10.130.16.9 host 10.122.95.41
+ permit ip host 10.130.16.9 host 10.122.95.85
+ permit ip host 10.130.16.9 host 10.122.100.34
+ permit ip host 10.130.16.10 host 10.122.82.240
+ permit ip host 10.130.16.10 host 10.122.88.100
+ permit ip host 10.130.16.10 host 10.122.95.40
+ permit ip host 10.130.16.10 host 10.122.95.41
+ permit ip host 10.130.16.10 host 10.122.95.85
+ permit ip host 10.130.16.10 host 10.122.100.34
+ permit ip host 10.130.16.11 host 10.122.82.240
+ permit ip host 10.130.16.11 host 10.122.88.100
+ permit ip host 10.130.16.11 host 10.122.95.40
+ permit ip host 10.130.16.11 host 10.122.95.41
+ permit ip host 10.130.16.11 host 10.122.95.85
+ permit ip host 10.130.16.11 host 10.122.100.34
+ permit ip host 10.130.16.12 host 10.122.82.240
+ permit ip host 10.130.16.12 host 10.122.88.100
+ permit ip host 10.130.16.12 host 10.122.95.40
+ permit ip host 10.130.16.12 host 10.122.95.41
+ permit ip host 10.130.16.12 host 10.122.95.85
+ permit ip host 10.130.16.12 host 10.122.100.34
+ permit ip host 10.130.16.13 host 10.122.82.240
+ permit ip host 10.130.16.13 host 10.122.88.100
+ permit ip host 10.130.16.13 host 10.122.95.40
+ permit ip host 10.130.16.13 host 10.122.95.41
+ permit ip host 10.130.16.13 host 10.122.95.85
+ permit ip host 10.130.16.13 host 10.122.100.34
+ permit ip host 10.130.16.14 host 10.122.82.240
+ permit ip host 10.130.16.14 host 10.122.88.100
+ permit ip host 10.130.16.14 host 10.122.95.40
+ permit ip host 10.130.16.14 host 10.122.95.41
+ permit ip host 10.130.16.14 host 10.122.95.85
+ permit ip host 10.130.16.14 host 10.122.100.34
+ permit ip host 10.130.16.15 host 10.122.82.240
+ permit ip host 10.130.16.15 host 10.122.88.100
+ permit ip host 10.130.16.15 host 10.122.95.40
+ permit ip host 10.130.16.15 host 10.122.95.41
+ permit ip host 10.130.16.15 host 10.122.95.85
+ permit ip host 10.130.16.15 host 10.122.100.34
+ permit ip host 10.130.16.16 host 10.122.82.240
+ permit ip host 10.130.16.16 host 10.122.88.100
+ permit ip host 10.130.16.16 host 10.122.95.40
+ permit ip host 10.130.16.16 host 10.122.95.41
+ permit ip host 10.130.16.16 host 10.122.95.85
+ permit ip host 10.130.16.16 host 10.122.100.34
+ permit ip host 10.130.16.17 host 10.122.82.240
+ permit ip host 10.130.16.17 host 10.122.88.100
+ permit ip host 10.130.16.17 host 10.122.95.40
+ permit ip host 10.130.16.17 host 10.122.95.41
+ permit ip host 10.130.16.17 host 10.122.95.85
+ permit ip host 10.130.16.17 host 10.122.100.34
+ permit ip host 10.130.16.18 host 10.122.82.240
+ permit ip host 10.130.16.18 host 10.122.88.100
+ permit ip host 10.130.16.18 host 10.122.95.40
+ permit ip host 10.130.16.18 host 10.122.95.41
+ permit ip host 10.130.16.18 host 10.122.95.85
+ permit ip host 10.130.16.18 host 10.122.100.34
+ permit ip host 10.130.16.19 host 10.122.82.240
+ permit ip host 10.130.16.19 host 10.122.88.100
+ permit ip host 10.130.16.19 host 10.122.95.40
+ permit ip host 10.130.16.19 host 10.122.95.41
+ permit ip host 10.130.16.19 host 10.122.95.85
+ permit ip host 10.130.16.19 host 10.122.100.34
+ permit ip host 10.130.16.20 host 10.122.82.240
+ permit ip host 10.130.16.20 host 10.122.88.100
+ permit ip host 10.130.16.20 host 10.122.95.40
+ permit ip host 10.130.16.20 host 10.122.95.41
+ permit ip host 10.130.16.20 host 10.122.95.85
+ permit ip host 10.130.16.20 host 10.122.100.34
+ permit ip host 10.130.16.21 host 10.122.82.240
+ permit ip host 10.130.16.21 host 10.122.88.100
+ permit ip host 10.130.16.21 host 10.122.95.40
+ permit ip host 10.130.16.21 host 10.122.95.41
+ permit ip host 10.130.16.21 host 10.122.95.85
+ permit ip host 10.130.16.21 host 10.122.100.34
+ permit ip host 10.130.0.10 host 10.123.11.42
+ permit ip host 10.130.0.10 host 10.123.23.42
+ permit ip host 10.130.0.10 host 10.123.42.42
+ permit ip host 10.130.0.10 host 10.123.102.42
+ permit ip host 10.130.0.10 host 10.123.111.42
+ permit ip host 10.130.0.10 host 10.123.112.42
+ permit ip host 10.130.0.11 host 10.123.11.42
+ permit ip host 10.130.0.11 host 10.123.23.42
+ permit ip host 10.130.0.11 host 10.123.42.42
+ permit ip host 10.130.0.11 host 10.123.102.42
+ permit ip host 10.130.0.11 host 10.123.111.42
+ permit ip host 10.130.0.11 host 10.123.112.42
+ permit ip host 10.130.0.12 host 10.123.11.42
+ permit ip host 10.130.0.12 host 10.123.23.42
+ permit ip host 10.130.0.12 host 10.123.42.42
+ permit ip host 10.130.0.12 host 10.123.102.42
+ permit ip host 10.130.0.12 host 10.123.111.42
+ permit ip host 10.130.0.12 host 10.123.112.42
+ permit ip host 10.130.0.13 host 10.123.11.42
+ permit ip host 10.130.0.13 host 10.123.23.42
+ permit ip host 10.130.0.13 host 10.123.42.42
+ permit ip host 10.130.0.13 host 10.123.102.42
+ permit ip host 10.130.0.13 host 10.123.111.42
+ permit ip host 10.130.0.13 host 10.123.112.42
+ permit ip host 10.130.0.14 host 10.123.11.42
+ permit ip host 10.130.0.14 host 10.123.23.42
+ permit ip host 10.130.0.14 host 10.123.42.42
+ permit ip host 10.130.0.14 host 10.123.102.42
+ permit ip host 10.130.0.14 host 10.123.111.42
+ permit ip host 10.130.0.14 host 10.123.112.42
+ permit ip host 10.130.0.15 host 10.123.11.42
+ permit ip host 10.130.0.15 host 10.123.23.42
+ permit ip host 10.130.0.15 host 10.123.42.42
+ permit ip host 10.130.0.15 host 10.123.102.42
+ permit ip host 10.130.0.15 host 10.123.111.42
+ permit ip host 10.130.0.15 host 10.123.112.42
+ permit ip host 10.130.0.16 host 10.123.11.42
+ permit ip host 10.130.0.16 host 10.123.23.42
+ permit ip host 10.130.0.16 host 10.123.42.42
+ permit ip host 10.130.0.16 host 10.123.102.42
+ permit ip host 10.130.0.16 host 10.123.111.42
+ permit ip host 10.130.0.16 host 10.123.112.42
+ permit ip host 10.130.16.9 host 10.123.11.42
+ permit ip host 10.130.16.9 host 10.123.23.42
+ permit ip host 10.130.16.9 host 10.123.42.42
+ permit ip host 10.130.16.9 host 10.123.102.42
+ permit ip host 10.130.16.9 host 10.123.111.42
+ permit ip host 10.130.16.9 host 10.123.112.42
+ permit ip host 10.130.16.10 host 10.123.11.42
+ permit ip host 10.130.16.10 host 10.123.23.42
+ permit ip host 10.130.16.10 host 10.123.42.42
+ permit ip host 10.130.16.10 host 10.123.102.42
+ permit ip host 10.130.16.10 host 10.123.111.42
+ permit ip host 10.130.16.10 host 10.123.112.42
+ permit ip host 10.130.16.11 host 10.123.11.42
+ permit ip host 10.130.16.11 host 10.123.23.42
+ permit ip host 10.130.16.11 host 10.123.42.42
+ permit ip host 10.130.16.11 host 10.123.102.42
+ permit ip host 10.130.16.11 host 10.123.111.42
+ permit ip host 10.130.16.11 host 10.123.112.42
+ permit ip host 10.130.16.12 host 10.123.11.42
+ permit ip host 10.130.16.12 host 10.123.23.42
+ permit ip host 10.130.16.12 host 10.123.42.42
+ permit ip host 10.130.16.12 host 10.123.102.42
+ permit ip host 10.130.16.12 host 10.123.111.42
+ permit ip host 10.130.16.12 host 10.123.112.42
+ permit ip host 10.130.16.13 host 10.123.11.42
+ permit ip host 10.130.16.13 host 10.123.23.42
+ permit ip host 10.130.16.13 host 10.123.42.42
+ permit ip host 10.130.16.13 host 10.123.102.42
+ permit ip host 10.130.16.13 host 10.123.111.42
+ permit ip host 10.130.16.13 host 10.123.112.42
+ permit ip host 10.130.16.14 host 10.123.11.42
+ permit ip host 10.130.16.14 host 10.123.23.42
+ permit ip host 10.130.16.14 host 10.123.42.42
+ permit ip host 10.130.16.14 host 10.123.102.42
+ permit ip host 10.130.16.14 host 10.123.111.42
+ permit ip host 10.130.16.14 host 10.123.112.42
+ permit ip host 10.130.16.15 host 10.123.11.42
+ permit ip host 10.130.16.15 host 10.123.23.42
+ permit ip host 10.130.16.15 host 10.123.42.42
+ permit ip host 10.130.16.15 host 10.123.102.42
+ permit ip host 10.130.16.15 host 10.123.111.42
+ permit ip host 10.130.16.15 host 10.123.112.42
+ permit ip host 10.130.16.16 host 10.123.11.42
+ permit ip host 10.130.16.16 host 10.123.23.42
+ permit ip host 10.130.16.16 host 10.123.42.42
+ permit ip host 10.130.16.16 host 10.123.102.42
+ permit ip host 10.130.16.16 host 10.123.111.42
+ permit ip host 10.130.16.16 host 10.123.112.42
+ permit ip host 10.130.16.17 host 10.123.11.42
+ permit ip host 10.130.16.17 host 10.123.23.42
+ permit ip host 10.130.16.17 host 10.123.42.42
+ permit ip host 10.130.16.17 host 10.123.102.42
+ permit ip host 10.130.16.17 host 10.123.111.42
+ permit ip host 10.130.16.17 host 10.123.112.42
+ permit ip host 10.130.16.18 host 10.123.11.42
+ permit ip host 10.130.16.18 host 10.123.23.42
+ permit ip host 10.130.16.18 host 10.123.42.42
+ permit ip host 10.130.16.18 host 10.123.102.42
+ permit ip host 10.130.16.18 host 10.123.111.42
+ permit ip host 10.130.16.18 host 10.123.112.42
+ permit ip host 10.130.16.19 host 10.123.11.42
+ permit ip host 10.130.16.19 host 10.123.23.42
+ permit ip host 10.130.16.19 host 10.123.42.42
+ permit ip host 10.130.16.19 host 10.123.102.42
+ permit ip host 10.130.16.19 host 10.123.111.42
+ permit ip host 10.130.16.19 host 10.123.112.42
+ permit ip host 10.130.16.20 host 10.123.11.42
+ permit ip host 10.130.16.20 host 10.123.23.42
+ permit ip host 10.130.16.20 host 10.123.42.42
+ permit ip host 10.130.16.20 host 10.123.102.42
+ permit ip host 10.130.16.20 host 10.123.111.42
+ permit ip host 10.130.16.20 host 10.123.112.42
+ permit ip host 10.130.16.21 host 10.123.11.42
+ permit ip host 10.130.16.21 host 10.123.23.42
+ permit ip host 10.130.16.21 host 10.123.42.42
+ permit ip host 10.130.16.21 host 10.123.102.42
+ permit ip host 10.130.16.21 host 10.123.111.42
+ permit ip host 10.130.16.21 host 10.123.112.42
+ permit ip host 10.130.0.10 host 10.124.1.55
+ permit ip host 10.130.0.10 host 10.124.1.56
+ permit ip host 10.130.0.10 host 10.124.4.24
+ permit ip host 10.130.0.10 host 10.124.4.25
+ permit ip host 10.130.0.10 host 10.124.4.26
+ permit ip host 10.130.0.10 host 10.124.64.55
+ permit ip host 10.130.0.10 host 10.124.96.45
+ permit ip host 10.130.0.11 host 10.124.1.55
+ permit ip host 10.130.0.11 host 10.124.1.56
+ permit ip host 10.130.0.11 host 10.124.4.24
+ permit ip host 10.130.0.11 host 10.124.4.25
+ permit ip host 10.130.0.11 host 10.124.4.26
+ permit ip host 10.130.0.11 host 10.124.64.55
+ permit ip host 10.130.0.11 host 10.124.96.45
+ permit ip host 10.130.0.12 host 10.124.1.55
+ permit ip host 10.130.0.12 host 10.124.1.56
+ permit ip host 10.130.0.12 host 10.124.4.24
+ permit ip host 10.130.0.12 host 10.124.4.25
+ permit ip host 10.130.0.12 host 10.124.4.26
+ permit ip host 10.130.0.12 host 10.124.64.55
+ permit ip host 10.130.0.12 host 10.124.96.45
+ permit ip host 10.130.0.13 host 10.124.1.55
+ permit ip host 10.130.0.13 host 10.124.1.56
+ permit ip host 10.130.0.13 host 10.124.4.24
+ permit ip host 10.130.0.13 host 10.124.4.25
+ permit ip host 10.130.0.13 host 10.124.4.26
+ permit ip host 10.130.0.13 host 10.124.64.55
+ permit ip host 10.130.0.13 host 10.124.96.45
+ permit ip host 10.130.0.14 host 10.124.1.55
+ permit ip host 10.130.0.14 host 10.124.1.56
+ permit ip host 10.130.0.14 host 10.124.4.24
+ permit ip host 10.130.0.14 host 10.124.4.25
+ permit ip host 10.130.0.14 host 10.124.4.26
+ permit ip host 10.130.0.14 host 10.124.64.55
+ permit ip host 10.130.0.14 host 10.124.96.45
+ permit ip host 10.130.0.15 host 10.124.1.55
+ permit ip host 10.130.0.15 host 10.124.1.56
+ permit ip host 10.130.0.15 host 10.124.4.24
+ permit ip host 10.130.0.15 host 10.124.4.25
+ permit ip host 10.130.0.15 host 10.124.4.26
+ permit ip host 10.130.0.15 host 10.124.64.55
+ permit ip host 10.130.0.15 host 10.124.96.45
+ permit ip host 10.130.0.16 host 10.124.1.55
+ permit ip host 10.130.0.16 host 10.124.1.56
+ permit ip host 10.130.0.16 host 10.124.4.24
+ permit ip host 10.130.0.16 host 10.124.4.25
+ permit ip host 10.130.0.16 host 10.124.4.26
+ permit ip host 10.130.0.16 host 10.124.64.55
+ permit ip host 10.130.0.16 host 10.124.96.45
+ permit ip host 10.130.16.9 host 10.124.1.55
+ permit ip host 10.130.16.9 host 10.124.1.56
+ permit ip host 10.130.16.9 host 10.124.4.24
+ permit ip host 10.130.16.9 host 10.124.4.25
+ permit ip host 10.130.16.9 host 10.124.4.26
+ permit ip host 10.130.16.9 host 10.124.64.55
+ permit ip host 10.130.16.9 host 10.124.96.45
+ permit ip host 10.130.16.10 host 10.124.1.55
+ permit ip host 10.130.16.10 host 10.124.1.56
+ permit ip host 10.130.16.10 host 10.124.4.24
+ permit ip host 10.130.16.10 host 10.124.4.25
+ permit ip host 10.130.16.10 host 10.124.4.26
+ permit ip host 10.130.16.10 host 10.124.64.55
+ permit ip host 10.130.16.10 host 10.124.96.45
+ permit ip host 10.130.16.11 host 10.124.1.55
+ permit ip host 10.130.16.11 host 10.124.1.56
+ permit ip host 10.130.16.11 host 10.124.4.24
+ permit ip host 10.130.16.11 host 10.124.4.25
+ permit ip host 10.130.16.11 host 10.124.4.26
+ permit ip host 10.130.16.11 host 10.124.64.55
+ permit ip host 10.130.16.11 host 10.124.96.45
+ permit ip host 10.130.16.12 host 10.124.1.55
+ permit ip host 10.130.16.12 host 10.124.1.56
+ permit ip host 10.130.16.12 host 10.124.4.24
+ permit ip host 10.130.16.12 host 10.124.4.25
+ permit ip host 10.130.16.12 host 10.124.4.26
+ permit ip host 10.130.16.12 host 10.124.64.55
+ permit ip host 10.130.16.12 host 10.124.96.45
+ permit ip host 10.130.16.13 host 10.124.1.55
+ permit ip host 10.130.16.13 host 10.124.1.56
+ permit ip host 10.130.16.13 host 10.124.4.24
+ permit ip host 10.130.16.13 host 10.124.4.25
+ permit ip host 10.130.16.13 host 10.124.4.26
+ permit ip host 10.130.16.13 host 10.124.64.55
+ permit ip host 10.130.16.13 host 10.124.96.45
+ permit ip host 10.130.16.14 host 10.124.1.55
+ permit ip host 10.130.16.14 host 10.124.1.56
+ permit ip host 10.130.16.14 host 10.124.4.24
+ permit ip host 10.130.16.14 host 10.124.4.25
+ permit ip host 10.130.16.14 host 10.124.4.26
+ permit ip host 10.130.16.14 host 10.124.64.55
+ permit ip host 10.130.16.14 host 10.124.96.45
+ permit ip host 10.130.16.15 host 10.124.1.55
+ permit ip host 10.130.16.15 host 10.124.1.56
+ permit ip host 10.130.16.15 host 10.124.4.24
+ permit ip host 10.130.16.15 host 10.124.4.25
+ permit ip host 10.130.16.15 host 10.124.4.26
+ permit ip host 10.130.16.15 host 10.124.64.55
+ permit ip host 10.130.16.15 host 10.124.96.45
+ permit ip host 10.130.16.16 host 10.124.1.55
+ permit ip host 10.130.16.16 host 10.124.1.56
+ permit ip host 10.130.16.16 host 10.124.4.24
+ permit ip host 10.130.16.16 host 10.124.4.25
+ permit ip host 10.130.16.16 host 10.124.4.26
+ permit ip host 10.130.16.16 host 10.124.64.55
+ permit ip host 10.130.16.16 host 10.124.96.45
+ permit ip host 10.130.16.17 host 10.124.1.55
+ permit ip host 10.130.16.17 host 10.124.1.56
+ permit ip host 10.130.16.17 host 10.124.4.24
+ permit ip host 10.130.16.17 host 10.124.4.25
+ permit ip host 10.130.16.17 host 10.124.4.26
+ permit ip host 10.130.16.17 host 10.124.64.55
+ permit ip host 10.130.16.17 host 10.124.96.45
+ permit ip host 10.130.16.18 host 10.124.1.55
+ permit ip host 10.130.16.18 host 10.124.1.56
+ permit ip host 10.130.16.18 host 10.124.4.24
+ permit ip host 10.130.16.18 host 10.124.4.25
+ permit ip host 10.130.16.18 host 10.124.4.26
+ permit ip host 10.130.16.18 host 10.124.64.55
+ permit ip host 10.130.16.18 host 10.124.96.45
+ permit ip host 10.130.16.19 host 10.124.1.55
+ permit ip host 10.130.16.19 host 10.124.1.56
+ permit ip host 10.130.16.19 host 10.124.4.24
+ permit ip host 10.130.16.19 host 10.124.4.25
+ permit ip host 10.130.16.19 host 10.124.4.26
+ permit ip host 10.130.16.19 host 10.124.64.55
+ permit ip host 10.130.16.19 host 10.124.96.45
+ permit ip host 10.130.16.20 host 10.124.1.55
+ permit ip host 10.130.16.20 host 10.124.1.56
+ permit ip host 10.130.16.20 host 10.124.4.24
+ permit ip host 10.130.16.20 host 10.124.4.25
+ permit ip host 10.130.16.20 host 10.124.4.26
+ permit ip host 10.130.16.20 host 10.124.64.55
+ permit ip host 10.130.16.20 host 10.124.96.45
+ permit ip host 10.130.16.21 host 10.124.1.55
+ permit ip host 10.130.16.21 host 10.124.1.56
+ permit ip host 10.130.16.21 host 10.124.4.24
+ permit ip host 10.130.16.21 host 10.124.4.25
+ permit ip host 10.130.16.21 host 10.124.4.26
+ permit ip host 10.130.16.21 host 10.124.64.55
+ permit ip host 10.130.16.21 host 10.124.96.45
+ permit ip host 10.130.0.10 host 10.122.138.10
+ permit ip host 10.130.0.10 host 10.122.215.4
+ permit ip host 10.130.0.10 host 10.122.215.5
+ permit ip host 10.130.0.10 host 10.122.215.6
+ permit ip host 10.130.0.10 host 10.122.215.20
+ permit ip host 10.130.0.10 host 10.122.215.36
+ permit ip host 10.130.0.10 host 10.122.215.52
+ permit ip host 10.130.0.11 host 10.122.138.10
+ permit ip host 10.130.0.11 host 10.122.215.4
+ permit ip host 10.130.0.11 host 10.122.215.5
+ permit ip host 10.130.0.11 host 10.122.215.6
+ permit ip host 10.130.0.11 host 10.122.215.20
+ permit ip host 10.130.0.11 host 10.122.215.36
+ permit ip host 10.130.0.11 host 10.122.215.52
+ permit ip host 10.130.0.12 host 10.122.138.10
+ permit ip host 10.130.0.12 host 10.122.215.4
+ permit ip host 10.130.0.12 host 10.122.215.5
+ permit ip host 10.130.0.12 host 10.122.215.6
+ permit ip host 10.130.0.12 host 10.122.215.20
+ permit ip host 10.130.0.12 host 10.122.215.36
+ permit ip host 10.130.0.12 host 10.122.215.52
+ permit ip host 10.130.0.13 host 10.122.138.10
+ permit ip host 10.130.0.13 host 10.122.215.4
+ permit ip host 10.130.0.13 host 10.122.215.5
+ permit ip host 10.130.0.13 host 10.122.215.6
+ permit ip host 10.130.0.13 host 10.122.215.20
+ permit ip host 10.130.0.13 host 10.122.215.36
+ permit ip host 10.130.0.13 host 10.122.215.52
+ permit ip host 10.130.0.14 host 10.122.138.10
+ permit ip host 10.130.0.14 host 10.122.215.4
+ permit ip host 10.130.0.14 host 10.122.215.5
+ permit ip host 10.130.0.14 host 10.122.215.6
+ permit ip host 10.130.0.14 host 10.122.215.20
+ permit ip host 10.130.0.14 host 10.122.215.36
+ permit ip host 10.130.0.14 host 10.122.215.52
+ permit ip host 10.130.0.15 host 10.122.138.10
+ permit ip host 10.130.0.15 host 10.122.215.4
+ permit ip host 10.130.0.15 host 10.122.215.5
+ permit ip host 10.130.0.15 host 10.122.215.6
+ permit ip host 10.130.0.15 host 10.122.215.20
+ permit ip host 10.130.0.15 host 10.122.215.36
+ permit ip host 10.130.0.15 host 10.122.215.52
+ permit ip host 10.130.0.16 host 10.122.138.10
+ permit ip host 10.130.0.16 host 10.122.215.4
+ permit ip host 10.130.0.16 host 10.122.215.5
+ permit ip host 10.130.0.16 host 10.122.215.6
+ permit ip host 10.130.0.16 host 10.122.215.20
+ permit ip host 10.130.0.16 host 10.122.215.36
+ permit ip host 10.130.0.16 host 10.122.215.52
+ permit ip host 10.130.16.9 host 10.122.138.10
+ permit ip host 10.130.16.9 host 10.122.215.4
+ permit ip host 10.130.16.9 host 10.122.215.5
+ permit ip host 10.130.16.9 host 10.122.215.6
+ permit ip host 10.130.16.9 host 10.122.215.20
+ permit ip host 10.130.16.9 host 10.122.215.36
+ permit ip host 10.130.16.9 host 10.122.215.52
+ permit ip host 10.130.16.10 host 10.122.138.10
+ permit ip host 10.130.16.10 host 10.122.215.4
+ permit ip host 10.130.16.10 host 10.122.215.5
+ permit ip host 10.130.16.10 host 10.122.215.6
+ permit ip host 10.130.16.10 host 10.122.215.20
+ permit ip host 10.130.16.10 host 10.122.215.36
+ permit ip host 10.130.16.10 host 10.122.215.52
+ permit ip host 10.130.16.11 host 10.122.138.10
+ permit ip host 10.130.16.11 host 10.122.215.4
+ permit ip host 10.130.16.11 host 10.122.215.5
+ permit ip host 10.130.16.11 host 10.122.215.6
+ permit ip host 10.130.16.11 host 10.122.215.20
+ permit ip host 10.130.16.11 host 10.122.215.36
+ permit ip host 10.130.16.11 host 10.122.215.52
+ permit ip host 10.130.16.12 host 10.122.138.10
+ permit ip host 10.130.16.12 host 10.122.215.4
+ permit ip host 10.130.16.12 host 10.122.215.5
+ permit ip host 10.130.16.12 host 10.122.215.6
+ permit ip host 10.130.16.12 host 10.122.215.20
+ permit ip host 10.130.16.12 host 10.122.215.36
+ permit ip host 10.130.16.12 host 10.122.215.52
+ permit ip host 10.130.16.13 host 10.122.138.10
+ permit ip host 10.130.16.13 host 10.122.215.4
+ permit ip host 10.130.16.13 host 10.122.215.5
+ permit ip host 10.130.16.13 host 10.122.215.6
+ permit ip host 10.130.16.13 host 10.122.215.20
+ permit ip host 10.130.16.13 host 10.122.215.36
+ permit ip host 10.130.16.13 host 10.122.215.52
+ permit ip host 10.130.16.14 host 10.122.138.10
+ permit ip host 10.130.16.14 host 10.122.215.4
+ permit ip host 10.130.16.14 host 10.122.215.5
+ permit ip host 10.130.16.14 host 10.122.215.6
+ permit ip host 10.130.16.14 host 10.122.215.20
+ permit ip host 10.130.16.14 host 10.122.215.36
+ permit ip host 10.130.16.14 host 10.122.215.52
+ permit ip host 10.130.16.15 host 10.122.138.10
+ permit ip host 10.130.16.15 host 10.122.215.4
+ permit ip host 10.130.16.15 host 10.122.215.5
+ permit ip host 10.130.16.15 host 10.122.215.6
+ permit ip host 10.130.16.15 host 10.122.215.20
+ permit ip host 10.130.16.15 host 10.122.215.36
+ permit ip host 10.130.16.15 host 10.122.215.52
+ permit ip host 10.130.16.16 host 10.122.138.10
+ permit ip host 10.130.16.16 host 10.122.215.4
+ permit ip host 10.130.16.16 host 10.122.215.5
+ permit ip host 10.130.16.16 host 10.122.215.6
+ permit ip host 10.130.16.16 host 10.122.215.20
+ permit ip host 10.130.16.16 host 10.122.215.36
+ permit ip host 10.130.16.16 host 10.122.215.52
+ permit ip host 10.130.16.17 host 10.122.138.10
+ permit ip host 10.130.16.17 host 10.122.215.4
+ permit ip host 10.130.16.17 host 10.122.215.5
+ permit ip host 10.130.16.17 host 10.122.215.6
+ permit ip host 10.130.16.17 host 10.122.215.20
+ permit ip host 10.130.16.17 host 10.122.215.36
+ permit ip host 10.130.16.17 host 10.122.215.52
+ permit ip host 10.130.16.18 host 10.122.138.10
+ permit ip host 10.130.16.18 host 10.122.215.4
+ permit ip host 10.130.16.18 host 10.122.215.5
+ permit ip host 10.130.16.18 host 10.122.215.6
+ permit ip host 10.130.16.18 host 10.122.215.20
+ permit ip host 10.130.16.18 host 10.122.215.36
+ permit ip host 10.130.16.18 host 10.122.215.52
+ permit ip host 10.130.16.19 host 10.122.138.10
+ permit ip host 10.130.16.19 host 10.122.215.4
+ permit ip host 10.130.16.19 host 10.122.215.5
+ permit ip host 10.130.16.19 host 10.122.215.6
+ permit ip host 10.130.16.19 host 10.122.215.20
+ permit ip host 10.130.16.19 host 10.122.215.36
+ permit ip host 10.130.16.19 host 10.122.215.52
+ permit ip host 10.130.16.20 host 10.122.138.10
+ permit ip host 10.130.16.20 host 10.122.215.4
+ permit ip host 10.130.16.20 host 10.122.215.5
+ permit ip host 10.130.16.20 host 10.122.215.6
+ permit ip host 10.130.16.20 host 10.122.215.20
+ permit ip host 10.130.16.20 host 10.122.215.36
+ permit ip host 10.130.16.20 host 10.122.215.52
+ permit ip host 10.130.16.21 host 10.122.138.10
+ permit ip host 10.130.16.21 host 10.122.215.4
+ permit ip host 10.130.16.21 host 10.122.215.5
+ permit ip host 10.130.16.21 host 10.122.215.6
+ permit ip host 10.130.16.21 host 10.122.215.20
+ permit ip host 10.130.16.21 host 10.122.215.36
+ permit ip host 10.130.16.21 host 10.122.215.52
+ permit ip host 10.130.0.10 host 10.124.34.39
+ permit ip host 10.130.0.11 host 10.124.34.39
+ permit ip host 10.130.0.12 host 10.124.34.39
+ permit ip host 10.130.0.13 host 10.124.34.39
+ permit ip host 10.130.0.14 host 10.124.34.39
+ permit ip host 10.130.0.15 host 10.124.34.39
+ permit ip host 10.130.0.16 host 10.124.34.39
+ permit ip host 10.130.16.9 host 10.124.34.39
+ permit ip host 10.130.16.10 host 10.124.34.39
+ permit ip host 10.130.16.11 host 10.124.34.39
+ permit ip host 10.130.16.12 host 10.124.34.39
+ permit ip host 10.130.16.13 host 10.124.34.39
+ permit ip host 10.130.16.14 host 10.124.34.39
+ permit ip host 10.130.16.15 host 10.124.34.39
+ permit ip host 10.130.16.16 host 10.124.34.39
+ permit ip host 10.130.16.17 host 10.124.34.39
+ permit ip host 10.130.16.18 host 10.124.34.39
+ permit ip host 10.130.16.19 host 10.124.34.39
+ permit ip host 10.130.16.20 host 10.124.34.39
+ permit ip host 10.130.16.21 host 10.124.34.39
+ permit ip host 10.130.0.10 host 10.124.30.40
+ permit ip host 10.130.0.11 host 10.124.30.40
+ permit ip host 10.130.0.12 host 10.124.30.40
+ permit ip host 10.130.0.13 host 10.124.30.40
+ permit ip host 10.130.0.14 host 10.124.30.40
+ permit ip host 10.130.0.15 host 10.124.30.40
+ permit ip host 10.130.0.16 host 10.124.30.40
+ permit ip host 10.130.16.9 host 10.124.30.40
+ permit ip host 10.130.16.10 host 10.124.30.40
+ permit ip host 10.130.16.11 host 10.124.30.40
+ permit ip host 10.130.16.12 host 10.124.30.40
+ permit ip host 10.130.16.13 host 10.124.30.40
+ permit ip host 10.130.16.14 host 10.124.30.40
+ permit ip host 10.130.16.15 host 10.124.30.40
+ permit ip host 10.130.16.16 host 10.124.30.40
+ permit ip host 10.130.16.17 host 10.124.30.40
+ permit ip host 10.130.16.18 host 10.124.30.40
+ permit ip host 10.130.16.19 host 10.124.30.40
+ permit ip host 10.130.16.20 host 10.124.30.40
+ permit ip host 10.130.16.21 host 10.124.30.40
+ permit ip host 10.130.0.10 host 10.122.88.126
+ permit ip host 10.130.0.11 host 10.122.88.126
+ permit ip host 10.130.0.12 host 10.122.88.126
+ permit ip host 10.130.0.13 host 10.122.88.126
+ permit ip host 10.130.0.14 host 10.122.88.126
+ permit ip host 10.130.0.15 host 10.122.88.126
+ permit ip host 10.130.0.16 host 10.122.88.126
+ permit ip host 10.130.16.9 host 10.122.88.126
+ permit ip host 10.130.16.10 host 10.122.88.126
+ permit ip host 10.130.16.11 host 10.122.88.126
+ permit ip host 10.130.16.12 host 10.122.88.126
+ permit ip host 10.130.16.13 host 10.122.88.126
+ permit ip host 10.130.16.14 host 10.122.88.126
+ permit ip host 10.130.16.15 host 10.122.88.126
+ permit ip host 10.130.16.16 host 10.122.88.126
+ permit ip host 10.130.16.17 host 10.122.88.126
+ permit ip host 10.130.16.18 host 10.122.88.126
+ permit ip host 10.130.16.19 host 10.122.88.126
+ permit ip host 10.130.16.20 host 10.122.88.126
+ permit ip host 10.130.16.21 host 10.122.88.126
+ permit ip host 10.130.0.10 host 10.122.104.79
+ permit ip host 10.130.0.11 host 10.122.104.79
+ permit ip host 10.130.0.12 host 10.122.104.79
+ permit ip host 10.130.0.13 host 10.122.104.79
+ permit ip host 10.130.0.14 host 10.122.104.79
+ permit ip host 10.130.0.15 host 10.122.104.79
+ permit ip host 10.130.0.16 host 10.122.104.79
+ permit ip host 10.130.16.9 host 10.122.104.79
+ permit ip host 10.130.16.10 host 10.122.104.79
+ permit ip host 10.130.16.11 host 10.122.104.79
+ permit ip host 10.130.16.12 host 10.122.104.79
+ permit ip host 10.130.16.13 host 10.122.104.79
+ permit ip host 10.130.16.14 host 10.122.104.79
+ permit ip host 10.130.16.15 host 10.122.104.79
+ permit ip host 10.130.16.16 host 10.122.104.79
+ permit ip host 10.130.16.17 host 10.122.104.79
+ permit ip host 10.130.16.18 host 10.122.104.79
+ permit ip host 10.130.16.19 host 10.122.104.79
+ permit ip host 10.130.16.20 host 10.122.104.79
+ permit ip host 10.130.16.21 host 10.122.104.79
+ permit ip host 10.130.0.10 host 10.122.77.201
+ permit ip host 10.130.0.11 host 10.122.77.201
+ permit ip host 10.130.0.12 host 10.122.77.201
+ permit ip host 10.130.0.13 host 10.122.77.201
+ permit ip host 10.130.0.14 host 10.122.77.201
+ permit ip host 10.130.0.15 host 10.122.77.201
+ permit ip host 10.130.0.16 host 10.122.77.201
+ permit ip host 10.130.16.9 host 10.122.77.201
+ permit ip host 10.130.16.10 host 10.122.77.201
+ permit ip host 10.130.16.11 host 10.122.77.201
+ permit ip host 10.130.16.12 host 10.122.77.201
+ permit ip host 10.130.16.13 host 10.122.77.201
+ permit ip host 10.130.16.14 host 10.122.77.201
+ permit ip host 10.130.16.15 host 10.122.77.201
+ permit ip host 10.130.16.16 host 10.122.77.201
+ permit ip host 10.130.16.17 host 10.122.77.201
+ permit ip host 10.130.16.18 host 10.122.77.201
+ permit ip host 10.130.16.19 host 10.122.77.201
+ permit ip host 10.130.16.20 host 10.122.77.201
+ permit ip host 10.130.16.21 host 10.122.77.201
+ permit ip host 10.130.0.10 host 10.122.0.98
+ permit ip host 10.130.0.11 host 10.122.0.98
+ permit ip host 10.130.0.12 host 10.122.0.98
+ permit ip host 10.130.0.13 host 10.122.0.98
+ permit ip host 10.130.0.14 host 10.122.0.98
+ permit ip host 10.130.0.15 host 10.122.0.98
+ permit ip host 10.130.0.16 host 10.122.0.98
+ permit ip host 10.130.16.9 host 10.122.0.98
+ permit ip host 10.130.16.10 host 10.122.0.98
+ permit ip host 10.130.16.11 host 10.122.0.98
+ permit ip host 10.130.16.12 host 10.122.0.98
+ permit ip host 10.130.16.13 host 10.122.0.98
+ permit ip host 10.130.16.14 host 10.122.0.98
+ permit ip host 10.130.16.15 host 10.122.0.98
+ permit ip host 10.130.16.16 host 10.122.0.98
+ permit ip host 10.130.16.17 host 10.122.0.98
+ permit ip host 10.130.16.18 host 10.122.0.98
+ permit ip host 10.130.16.19 host 10.122.0.98
+ permit ip host 10.130.16.20 host 10.122.0.98
+ permit ip host 10.130.16.21 host 10.122.0.98
+ permit ip host 10.130.0.17 host 10.130.0.10
+ permit ip host 10.130.0.17 host 10.130.0.11
+ permit ip host 10.130.0.17 host 10.130.0.12
+ permit ip host 10.130.0.17 host 10.130.0.13
+ permit ip host 10.130.0.17 host 10.130.0.14
+ permit ip host 10.130.0.17 host 10.130.0.15
+ permit ip host 10.130.0.17 host 10.130.0.16
+ permit ip host 10.130.0.17 host 10.130.16.9
+ permit ip host 10.130.0.17 host 10.130.16.10
+ permit ip host 10.130.0.17 host 10.130.16.11
+ permit ip host 10.130.0.17 host 10.130.16.12
+ permit ip host 10.130.0.17 host 10.130.16.13
+ permit ip host 10.130.0.17 host 10.130.16.14
+ permit ip host 10.130.0.17 host 10.130.16.15
+ permit ip host 10.130.0.17 host 10.130.16.16
+ permit ip host 10.130.0.17 host 10.130.16.17
+ permit ip host 10.130.0.17 host 10.130.16.18
+ permit ip host 10.130.0.17 host 10.130.16.19
+ permit ip host 10.130.0.17 host 10.130.16.20
+ permit ip host 10.130.0.17 host 10.130.16.21
+ permit ip host 10.130.0.17 host 10.130.8.10
+ permit ip host 10.130.0.17 host 10.130.8.11
+ permit ip host 10.130.0.17 host 10.130.8.12
+ permit ip host 10.130.0.17 host 10.130.8.13
+ permit ip host 10.130.0.17 host 10.130.8.14
+ permit ip host 10.130.0.17 host 10.122.0.99
+ permit ip host 10.130.0.17 host 10.122.0.100
+ permit ip host 10.130.0.17 host 10.122.82.240
+ permit ip host 10.130.0.17 host 10.122.88.100
+ permit ip host 10.130.0.17 host 10.122.95.40
+ permit ip host 10.130.0.17 host 10.122.95.41
+ permit ip host 10.130.0.17 host 10.122.95.85
+ permit ip host 10.130.0.17 host 10.122.100.34
+ permit ip host 10.130.0.17 host 10.124.1.55
+ permit ip host 10.130.0.17 host 10.124.1.56
+ permit ip host 10.130.0.17 host 10.124.4.24
+ permit ip host 10.130.0.17 host 10.124.4.25
+ permit ip host 10.130.0.17 host 10.124.4.26
+ permit ip host 10.130.0.17 host 10.124.64.55
+ permit ip host 10.130.0.17 host 10.124.96.45
+ permit ip host 10.130.0.17 host 10.124.34.39
+ permit ip host 10.130.0.17 host 10.122.138.10
+ permit ip host 10.130.0.17 host 10.122.215.4
+ permit ip host 10.130.0.17 host 10.122.215.5
+ permit ip host 10.130.0.17 host 10.122.215.6
+ permit ip host 10.130.0.17 host 10.122.215.20
+ permit ip host 10.130.0.17 host 10.122.215.36
+ permit ip host 10.130.0.17 host 10.122.215.52
+ permit ip host 10.130.0.17 host 10.124.30.40
+ permit ip host 10.130.0.17 host 10.122.88.126
+ permit ip host 10.130.0.17 host 10.122.104.79
+ permit ip host 10.130.0.17 host 10.122.77.201
+ permit ip host 10.130.0.17 host 10.122.0.98
+ permit ip host 10.130.0.18 host 10.130.0.10
+ permit ip host 10.130.0.18 host 10.130.0.11
+ permit ip host 10.130.0.18 host 10.130.0.12
+ permit ip host 10.130.0.18 host 10.130.0.13
+ permit ip host 10.130.0.18 host 10.130.0.14
+ permit ip host 10.130.0.18 host 10.130.0.15
+ permit ip host 10.130.0.18 host 10.130.0.16
+ permit ip host 10.130.0.18 host 10.130.16.9
+ permit ip host 10.130.0.18 host 10.130.16.10
+ permit ip host 10.130.0.18 host 10.130.16.11
+ permit ip host 10.130.0.18 host 10.130.16.12
+ permit ip host 10.130.0.18 host 10.130.16.13
+ permit ip host 10.130.0.18 host 10.130.16.14
+ permit ip host 10.130.0.18 host 10.130.16.15
+ permit ip host 10.130.0.18 host 10.130.16.16
+ permit ip host 10.130.0.18 host 10.130.16.17
+ permit ip host 10.130.0.18 host 10.130.16.18
+ permit ip host 10.130.0.18 host 10.130.16.19
+ permit ip host 10.130.0.18 host 10.130.16.20
+ permit ip host 10.130.0.18 host 10.130.16.21
+ permit ip host 10.130.0.18 host 10.130.8.10
+ permit ip host 10.130.0.18 host 10.130.8.11
+ permit ip host 10.130.0.18 host 10.130.8.12
+ permit ip host 10.130.0.18 host 10.130.8.13
+ permit ip host 10.130.0.18 host 10.130.8.14
+ permit ip host 10.130.0.18 host 10.122.0.99
+ permit ip host 10.130.0.18 host 10.122.0.100
+ permit ip host 10.130.0.18 host 10.122.82.240
+ permit ip host 10.130.0.18 host 10.122.88.100
+ permit ip host 10.130.0.18 host 10.122.95.40
+ permit ip host 10.130.0.18 host 10.122.95.41
+ permit ip host 10.130.0.18 host 10.122.95.85
+ permit ip host 10.130.0.18 host 10.122.100.34
+ permit ip host 10.130.0.18 host 10.124.1.55
+ permit ip host 10.130.0.18 host 10.124.1.56
+ permit ip host 10.130.0.18 host 10.124.4.24
+ permit ip host 10.130.0.18 host 10.124.4.25
+ permit ip host 10.130.0.18 host 10.124.4.26
+ permit ip host 10.130.0.18 host 10.124.64.55
+ permit ip host 10.130.0.18 host 10.124.96.45
+ permit ip host 10.130.0.18 host 10.124.34.39
+ permit ip host 10.130.0.18 host 10.122.138.10
+ permit ip host 10.130.0.18 host 10.122.215.4
+ permit ip host 10.130.0.18 host 10.122.215.5
+ permit ip host 10.130.0.18 host 10.122.215.6
+ permit ip host 10.130.0.18 host 10.122.215.20
+ permit ip host 10.130.0.18 host 10.122.215.36
+ permit ip host 10.130.0.18 host 10.122.215.52
+ permit ip host 10.130.0.18 host 10.124.30.40
+ permit ip host 10.130.0.18 host 10.122.88.126
+ permit ip host 10.130.0.18 host 10.122.104.79
+ permit ip host 10.130.0.18 host 10.122.77.201
+ permit ip host 10.130.0.18 host 10.122.0.98
+ permit ip host 10.130.0.19 host 10.130.0.10
+ permit ip host 10.130.0.19 host 10.130.0.11
+ permit ip host 10.130.0.19 host 10.130.0.12
+ permit ip host 10.130.0.19 host 10.130.0.13
+ permit ip host 10.130.0.19 host 10.130.0.14
+ permit ip host 10.130.0.19 host 10.130.0.15
+ permit ip host 10.130.0.19 host 10.130.0.16
+ permit ip host 10.130.0.19 host 10.130.16.9
+ permit ip host 10.130.0.19 host 10.130.16.10
+ permit ip host 10.130.0.19 host 10.130.16.11
+ permit ip host 10.130.0.19 host 10.130.16.12
+ permit ip host 10.130.0.19 host 10.130.16.13
+ permit ip host 10.130.0.19 host 10.130.16.14
+ permit ip host 10.130.0.19 host 10.130.16.15
+ permit ip host 10.130.0.19 host 10.130.16.16
+ permit ip host 10.130.0.19 host 10.130.16.17
+ permit ip host 10.130.0.19 host 10.130.16.18
+ permit ip host 10.130.0.19 host 10.130.16.19
+ permit ip host 10.130.0.19 host 10.130.16.20
+ permit ip host 10.130.0.19 host 10.130.16.21
+ permit ip host 10.130.0.19 host 10.130.8.10
+ permit ip host 10.130.0.19 host 10.130.8.11
+ permit ip host 10.130.0.19 host 10.130.8.12
+ permit ip host 10.130.0.19 host 10.130.8.13
+ permit ip host 10.130.0.19 host 10.130.8.14
+ permit ip host 10.130.0.19 host 10.122.0.99
+ permit ip host 10.130.0.19 host 10.122.0.100
+ permit ip host 10.130.0.19 host 10.122.82.240
+ permit ip host 10.130.0.19 host 10.122.88.100
+ permit ip host 10.130.0.19 host 10.122.95.40
+ permit ip host 10.130.0.19 host 10.122.95.41
+ permit ip host 10.130.0.19 host 10.122.95.85
+ permit ip host 10.130.0.19 host 10.122.100.34
+ permit ip host 10.130.0.19 host 10.124.1.55
+ permit ip host 10.130.0.19 host 10.124.1.56
+ permit ip host 10.130.0.19 host 10.124.4.24
+ permit ip host 10.130.0.19 host 10.124.4.25
+ permit ip host 10.130.0.19 host 10.124.4.26
+ permit ip host 10.130.0.19 host 10.124.64.55
+ permit ip host 10.130.0.19 host 10.124.96.45
+ permit ip host 10.130.0.19 host 10.124.34.39
+ permit ip host 10.130.0.19 host 10.122.138.10
+ permit ip host 10.130.0.19 host 10.122.215.4
+ permit ip host 10.130.0.19 host 10.122.215.5
+ permit ip host 10.130.0.19 host 10.122.215.6
+ permit ip host 10.130.0.19 host 10.122.215.20
+ permit ip host 10.130.0.19 host 10.122.215.36
+ permit ip host 10.130.0.19 host 10.122.215.52
+ permit ip host 10.130.0.19 host 10.124.30.40
+ permit ip host 10.130.0.19 host 10.122.88.126
+ permit ip host 10.130.0.19 host 10.122.104.79
+ permit ip host 10.130.0.19 host 10.122.77.201
+ permit ip host 10.130.0.19 host 10.122.0.98
+ permit ip host 10.130.0.17 host 10.123.32.42
+ permit ip host 10.130.0.17 host 10.123.113.114
+ permit ip host 10.130.0.17 host 10.123.114.42
+ permit ip host 10.130.0.17 host 10.122.112.63
+ permit ip host 10.130.0.17 host 10.122.67.29
+ permit ip host 10.130.0.18 host 10.123.32.42
+ permit ip host 10.130.0.18 host 10.123.113.114
+ permit ip host 10.130.0.18 host 10.123.114.42
+ permit ip host 10.130.0.18 host 10.122.112.63
+ permit ip host 10.130.0.18 host 10.122.67.29
+ permit ip host 10.130.0.19 host 10.123.32.42
+ permit ip host 10.130.0.19 host 10.123.113.114
+ permit ip host 10.130.0.19 host 10.123.114.42
+ permit ip host 10.130.0.19 host 10.122.112.63
+ permit ip host 10.130.0.19 host 10.122.67.29
+ permit ip host 10.130.0.10 host 10.123.32.42
+ permit ip host 10.130.0.10 host 10.123.113.114
+ permit ip host 10.130.0.10 host 10.123.114.42
+ permit ip host 10.130.0.10 host 10.122.112.63
+ permit ip host 10.130.0.10 host 10.122.67.29
+ permit ip host 10.130.0.11 host 10.123.32.42
+ permit ip host 10.130.0.11 host 10.123.113.114
+ permit ip host 10.130.0.11 host 10.123.114.42
+ permit ip host 10.130.0.11 host 10.122.112.63
+ permit ip host 10.130.0.11 host 10.122.67.29
+ permit ip host 10.130.0.12 host 10.123.32.42
+ permit ip host 10.130.0.12 host 10.123.113.114
+ permit ip host 10.130.0.12 host 10.123.114.42
+ permit ip host 10.130.0.12 host 10.122.112.63
+ permit ip host 10.130.0.12 host 10.122.67.2
+ permit ip host 10.130.0.13 host 10.123.32.42
+ permit ip host 10.130.0.13 host 10.123.113.114
+ permit ip host 10.130.0.13 host 10.123.114.42
+ permit ip host 10.130.0.13 host 10.122.112.63
+ permit ip host 10.130.0.13 host 10.122.67.29
+ permit ip host 10.130.0.14 host 10.123.32.42
+ permit ip host 10.130.0.14 host 10.123.113.114
+ permit ip host 10.130.0.14 host 10.123.114.42
+ permit ip host 10.130.0.14 host 10.122.112.63
+ permit ip host 10.130.0.14 host 10.122.67.29
+ permit ip host 10.130.0.15 host 10.123.32.42
+ permit ip host 10.130.0.15 host 10.123.113.114
+ permit ip host 10.130.0.15 host 10.123.114.42
+ permit ip host 10.130.0.15 host 10.122.112.63
+ permit ip host 10.130.0.15 host 10.122.67.29
+ permit ip host 10.130.0.16 host 10.123.32.42
+ permit ip host 10.130.0.16 host 10.123.113.114
+ permit ip host 10.130.0.16 host 10.123.114.42
+ permit ip host 10.130.0.16 host 10.122.112.63
+ permit ip host 10.130.0.16 host 10.122.67.29
+ permit ip host 10.130.16.10 host 10.123.32.42
+ permit ip host 10.130.16.10 host 10.123.113.114
+ permit ip host 10.130.16.10 host 10.123.114.42
+ permit ip host 10.130.16.10 host 10.122.112.63
+ permit ip host 10.130.16.10 host 10.122.67.29
+ permit ip host 10.130.16.11 host 10.123.32.42
+ permit ip host 10.130.16.11 host 10.123.113.114
+ permit ip host 10.130.16.11 host 10.123.114.42
+ permit ip host 10.130.16.11 host 10.122.112.63
+ permit ip host 10.130.16.11 host 10.122.67.29
+ permit ip host 10.130.16.12 host 10.123.32.42
+ permit ip host 10.130.16.12 host 10.123.113.114
+ permit ip host 10.130.16.12 host 10.123.114.42
+ permit ip host 10.130.16.12 host 10.122.112.63
+ permit ip host 10.130.16.12 host 10.122.67.29
+ permit ip host 10.130.16.13 host 10.123.32.42
+ permit ip host 10.130.16.13 host 10.123.113.114
+ permit ip host 10.130.16.13 host 10.123.114.42
+ permit ip host 10.130.16.13 host 10.122.112.63
+ permit ip host 10.130.16.13 host 10.122.67.29
+ permit ip host 10.130.16.14 host 10.123.32.42
+ permit ip host 10.130.16.14 host 10.123.113.114
+ permit ip host 10.130.16.14 host 10.123.114.42
+ permit ip host 10.130.16.14 host 10.122.112.63
+ permit ip host 10.130.16.14 host 10.122.67.29
+ permit ip host 10.130.16.15 host 10.123.32.42
+ permit ip host 10.130.16.15 host 10.123.113.114
+ permit ip host 10.130.16.15 host 10.123.114.42
+ permit ip host 10.130.16.15 host 10.122.112.63
+ permit ip host 10.130.16.15 host 10.122.67.29
+ permit ip host 10.130.16.16 host 10.123.32.42
+ permit ip host 10.130.16.16 host 10.123.113.114
+ permit ip host 10.130.16.16 host 10.123.114.42
+ permit ip host 10.130.16.16 host 10.122.112.63
+ permit ip host 10.130.16.16 host 10.122.67.29
+ permit ip host 10.130.16.17 host 10.123.32.42
+ permit ip host 10.130.16.17 host 10.123.113.114
+ permit ip host 10.130.16.17 host 10.123.114.42
+ permit ip host 10.130.16.17 host 10.122.112.63
+ permit ip host 10.130.16.17 host 10.122.67.29
+ permit ip host 10.130.16.18 host 10.123.32.42
+ permit ip host 10.130.16.18 host 10.123.113.114
+ permit ip host 10.130.16.18 host 10.123.114.42
+ permit ip host 10.130.16.18 host 10.122.112.63
+ permit ip host 10.130.16.18 host 10.122.67.29
+ permit ip host 10.130.16.19 host 10.123.32.42
+ permit ip host 10.130.16.19 host 10.123.113.114
+ permit ip host 10.130.16.19 host 10.123.114.42
+ permit ip host 10.130.16.19 host 10.122.112.63
+ permit ip host 10.130.16.19 host 10.122.67.29
+ permit ip host 10.130.16.20 host 10.123.32.42
+ permit ip host 10.130.16.20 host 10.123.113.114
+ permit ip host 10.130.16.20 host 10.123.114.42
+ permit ip host 10.130.16.20 host 10.122.112.63
+ permit ip host 10.130.16.20 host 10.122.67.29
+ permit ip host 10.130.16.21 host 10.123.32.42
+ permit ip host 10.130.16.21 host 10.123.113.114
+ permit ip host 10.130.16.21 host 10.123.114.42
+ permit ip host 10.130.16.21 host 10.122.112.63
+ permit ip host 10.130.16.21 host 10.122.67.29
+ permit ip host 10.130.16.9 host 10.123.32.42
+ permit ip host 10.130.16.9 host 10.123.113.114
+ permit ip host 10.130.16.9 host 10.123.114.42
+ permit ip host 10.130.16.9 host 10.122.112.63
+ permit ip host 10.130.16.9 host 10.122.67.29
+ permit ip host 10.130.8.8 host 10.130.8.10
+ permit ip host 10.130.8.8 host 10.130.8.11
+ permit ip host 10.130.8.8 host 10.130.8.12
+ permit ip host 10.130.8.8 host 10.130.8.13
+ permit ip host 10.130.8.8 host 10.130.8.14
+ permit ip host 10.130.8.9 host 10.130.8.10
+ permit ip host 10.130.8.9 host 10.130.8.11
+ permit ip host 10.130.8.9 host 10.130.8.12
+ permit ip host 10.130.8.9 host 10.130.8.13
+ permit ip host 10.130.8.9 host 10.130.8.14
+ permit ip host 10.130.8.8 host 10.122.0.99
+ permit ip host 10.130.8.8 host 10.122.0.100
+ permit ip host 10.130.8.9 host 10.122.0.99
+ permit ip host 10.130.8.9 host 10.122.0.100
+ permit ip host 10.130.8.8 host 10.122.82.240
+ permit ip host 10.130.8.8 host 10.122.88.100
+ permit ip host 10.130.8.8 host 10.122.95.40
+ permit ip host 10.130.8.8 host 10.122.95.41
+ permit ip host 10.130.8.8 host 10.122.95.85
+ permit ip host 10.130.8.8 host 10.122.100.34
+ permit ip host 10.130.8.9 host 10.122.82.240
+ permit ip host 10.130.8.9 host 10.122.88.100
+ permit ip host 10.130.8.9 host 10.122.95.40
+ permit ip host 10.130.8.9 host 10.122.95.41
+ permit ip host 10.130.8.9 host 10.122.95.85
+ permit ip host 10.130.8.9 host 10.122.100.34
+ permit ip host 10.130.8.8 host 10.123.11.42
+ permit ip host 10.130.8.8 host 10.123.23.42
+ permit ip host 10.130.8.8 host 10.123.42.42
+ permit ip host 10.130.8.8 host 10.123.102.42
+ permit ip host 10.130.8.8 host 10.123.111.42
+ permit ip host 10.130.8.8 host 10.123.112.42
+ permit ip host 10.130.8.9 host 10.123.11.42
+ permit ip host 10.130.8.9 host 10.123.23.42
+ permit ip host 10.130.8.9 host 10.123.42.42
+ permit ip host 10.130.8.9 host 10.123.102.42
+ permit ip host 10.130.8.9 host 10.123.111.42
+ permit ip host 10.130.8.9 host 10.123.112.42
+ permit ip host 10.130.8.8 host 10.124.1.55
+ permit ip host 10.130.8.8 host 10.124.1.56
+ permit ip host 10.130.8.8 host 10.124.4.24
+ permit ip host 10.130.8.8 host 10.124.4.25
+ permit ip host 10.130.8.8 host 10.124.4.26
+ permit ip host 10.130.8.8 host 10.124.64.55
+ permit ip host 10.130.8.8 host 10.124.96.45
+ permit ip host 10.130.8.9 host 10.124.1.55
+ permit ip host 10.130.8.9 host 10.124.1.56
+ permit ip host 10.130.8.9 host 10.124.4.24
+ permit ip host 10.130.8.9 host 10.124.4.25
+ permit ip host 10.130.8.9 host 10.124.4.26
+ permit ip host 10.130.8.9 host 10.124.64.55
+ permit ip host 10.130.8.9 host 10.124.96.45
+ permit ip host 10.130.8.8 host 10.122.138.10
+ permit ip host 10.130.8.8 host 10.122.215.4
+ permit ip host 10.130.8.8 host 10.122.215.5
+ permit ip host 10.130.8.8 host 10.122.215.6
+ permit ip host 10.130.8.8 host 10.122.215.20
+ permit ip host 10.130.8.8 host 10.122.215.36
+ permit ip host 10.130.8.8 host 10.122.215.52
+ permit ip host 10.130.8.9 host 10.122.138.10
+ permit ip host 10.130.8.9 host 10.122.215.4
+ permit ip host 10.130.8.9 host 10.122.215.5
+ permit ip host 10.130.8.9 host 10.122.215.6
+ permit ip host 10.130.8.9 host 10.122.215.20
+ permit ip host 10.130.8.9 host 10.122.215.36
+ permit ip host 10.130.8.9 host 10.122.215.52
+ permit ip host 10.130.8.8 host 10.124.34.39
+ permit ip host 10.130.8.9 host 10.124.34.39
+ permit ip host 10.130.8.8 host 10.124.30.40
+ permit ip host 10.130.8.9 host 10.124.30.40
+ permit ip host 10.130.8.8 host 10.122.88.126
+ permit ip host 10.130.8.8 host 10.122.104.79
+ permit ip host 10.130.8.8 host 10.122.77.201
+ permit ip host 10.130.8.8 host 10.122.0.98
+ permit ip host 10.130.8.8 host 10.130.0.10
+ permit ip host 10.130.8.8 host 10.130.0.11
+ permit ip host 10.130.8.8 host 10.130.0.12
+ permit ip host 10.130.8.8 host 10.130.0.13
+ permit ip host 10.130.8.8 host 10.130.0.14
+ permit ip host 10.130.8.8 host 10.130.0.15
+ permit ip host 10.130.8.8 host 10.130.0.16
+ permit ip host 10.130.8.8 host 10.130.16.9
+ permit ip host 10.130.8.8 host 10.130.16.10
+ permit ip host 10.130.8.8 host 10.130.16.11
+ permit ip host 10.130.8.8 host 10.130.16.12
+ permit ip host 10.130.8.8 host 10.130.16.13
+ permit ip host 10.130.8.8 host 10.130.16.14
+ permit ip host 10.130.8.8 host 10.130.16.15
+ permit ip host 10.130.8.8 host 10.130.16.16
+ permit ip host 10.130.8.8 host 10.130.16.17
+ permit ip host 10.130.8.8 host 10.130.16.18
+ permit ip host 10.130.8.8 host 10.130.16.19
+ permit ip host 10.130.8.8 host 10.130.16.20
+ permit ip host 10.130.8.8 host 10.130.16.21
+ permit ip host 10.130.8.8 host 10.122.67.29
+ permit ip host 10.130.8.8 host 10.123.32.42
+ permit ip host 10.130.8.8 host 10.123.113.114
+ permit ip host 10.130.8.8 host 10.123.114.42
+ permit ip host 10.130.8.8 host 10.122.112.63
+ permit ip host 10.130.8.9 host 10.122.88.126
+ permit ip host 10.130.8.9 host 10.122.104.79
+ permit ip host 10.130.8.9 host 10.122.77.201
+ permit ip host 10.130.8.9 host 10.122.0.98
+ permit ip host 10.130.8.9 host 10.130.0.10
+ permit ip host 10.130.8.9 host 10.130.0.11
+ permit ip host 10.130.8.9 host 10.130.0.12
+ permit ip host 10.130.8.9 host 10.130.0.13
+ permit ip host 10.130.8.9 host 10.130.0.14
+ permit ip host 10.130.8.9 host 10.130.0.15
+ permit ip host 10.130.8.9 host 10.130.0.16
+ permit ip host 10.130.8.9 host 10.130.16.9
+ permit ip host 10.130.8.9 host 10.130.16.10
+ permit ip host 10.130.8.9 host 10.130.16.11
+ permit ip host 10.130.8.9 host 10.130.16.12
+ permit ip host 10.130.8.9 host 10.130.16.13
+ permit ip host 10.130.8.9 host 10.130.16.14
+ permit ip host 10.130.8.9 host 10.130.16.15
+ permit ip host 10.130.8.9 host 10.130.16.16
+ permit ip host 10.130.8.9 host 10.130.16.17
+ permit ip host 10.130.8.9 host 10.130.16.18
+ permit ip host 10.130.8.9 host 10.130.16.19
+ permit ip host 10.130.8.9 host 10.130.16.20
+ permit ip host 10.130.8.9 host 10.130.16.21
+ permit ip host 10.130.8.9 host 10.122.67.29
+ permit ip host 10.130.8.9 host 10.123.32.42
+ permit ip host 10.130.8.9 host 10.123.113.114
+ permit ip host 10.130.8.9 host 10.123.114.42
+ permit ip host 10.130.8.9 host 10.122.112.63
+ permit ip host 10.130.0.10 host 10.124.30.41
+ permit ip host 10.130.0.11 host 10.124.30.41
+ permit ip host 10.130.0.12 host 10.124.30.41
+ permit ip host 10.130.0.13 host 10.124.30.41
+ permit ip host 10.130.0.14 host 10.124.30.41
+ permit ip host 10.130.0.15 host 10.124.30.41
+ permit ip host 10.130.0.16 host 10.124.30.41
+ permit ip host 10.130.16.9 host 10.124.30.41
+ permit ip host 10.130.16.10 host 10.124.30.41
+ permit ip host 10.130.16.11 host 10.124.30.41
+ permit ip host 10.130.16.12 host 10.124.30.41
+ permit ip host 10.130.16.13 host 10.124.30.41
+ permit ip host 10.130.16.14 host 10.124.30.41
+ permit ip host 10.130.16.15 host 10.124.30.41
+ permit ip host 10.130.16.16 host 10.124.30.41
+ permit ip host 10.130.16.17 host 10.124.30.41
+ permit ip host 10.130.16.18 host 10.124.30.41
+ permit ip host 10.130.16.19 host 10.124.30.41
+ permit ip host 10.130.16.20 host 10.124.30.41
+ permit ip host 10.130.16.21 host 10.124.30.41
+ permit ip host 10.130.16.10 host 10.123.201.17
+ permit ip host 10.130.16.11 host 10.123.201.17
+ permit ip host 10.130.16.12 host 10.123.201.17
+ permit ip host 10.130.16.13 host 10.123.201.17
+ permit ip host 10.130.16.14 host 10.123.201.17
+ permit ip host 10.130.16.15 host 10.123.201.17
+ permit ip host 10.130.16.16 host 10.123.201.17
+ permit ip host 10.130.16.17 host 10.123.201.17
+ permit ip host 10.130.16.18 host 10.123.201.17
+ permit ip host 10.130.16.19 host 10.123.201.17
+ permit ip host 10.130.16.20 host 10.123.201.17
+ permit ip host 10.130.16.21 host 10.123.202.17
+ permit ip host 10.130.16.9 host 10.123.202.17
+ permit ip host 10.130.16.10 host 10.123.202.17
+ permit ip host 10.130.16.11 host 10.123.202.17
+ permit ip host 10.130.16.12 host 10.123.202.17
+ permit ip host 10.130.16.13 host 10.123.202.17
+ permit ip host 10.130.16.14 host 10.123.202.17
+ permit ip host 10.130.16.15 host 10.123.202.17
+ permit ip host 10.130.16.16 host 10.123.202.17
+ permit ip host 10.130.16.17 host 10.123.202.17
+ permit ip host 10.130.16.18 host 10.123.202.17
+ permit ip host 10.130.16.19 host 10.123.202.17
+ permit ip host 10.130.16.20 host 10.123.202.17
+ permit ip host 10.130.16.9 host 10.123.202.18
+ permit ip host 10.130.16.10 host 10.123.202.18
+ permit ip host 10.130.16.11 host 10.123.202.18
+ permit ip host 10.130.16.12 host 10.123.202.18
+ permit ip host 10.130.16.13 host 10.123.202.18
+ permit ip host 10.130.16.14 host 10.123.202.18
+ permit ip host 10.130.16.15 host 10.123.202.18
+ permit ip host 10.130.16.16 host 10.123.202.18
+ permit ip host 10.130.16.17 host 10.123.202.18
+ permit ip host 10.130.16.18 host 10.123.202.18
+ permit ip host 10.130.16.19 host 10.123.202.18
+ permit ip host 10.130.16.20 host 10.123.202.18
+ permit ip host 10.130.16.21 host 10.123.202.18
+ permit ip host 10.130.16.9 host 10.123.202.19
+ permit ip host 10.130.16.10 host 10.123.202.19
+ permit ip host 10.130.16.11 host 10.123.202.19
+ permit ip host 10.130.16.12 host 10.123.202.19
+ permit ip host 10.130.16.13 host 10.123.202.19
+ permit ip host 10.130.16.14 host 10.123.202.19
+ permit ip host 10.130.16.15 host 10.123.202.19
+ permit ip host 10.130.16.16 host 10.123.202.19
+ permit ip host 10.130.16.17 host 10.123.202.19
+ permit ip host 10.130.16.18 host 10.123.202.19
+ permit ip host 10.130.16.19 host 10.123.202.19
+ permit ip host 10.130.16.20 host 10.123.202.19
+ permit ip host 10.130.16.21 host 10.123.202.19
+ permit ip host 10.130.16.9 host 10.123.203.17
+ permit ip host 10.130.16.10 host 10.123.203.17
+ permit ip host 10.130.16.11 host 10.123.203.17
+ permit ip host 10.130.16.12 host 10.123.203.17
+ permit ip host 10.130.16.13 host 10.123.203.17
+ permit ip host 10.130.16.14 host 10.123.203.17
+ permit ip host 10.130.16.15 host 10.123.203.17
+ permit ip host 10.130.16.16 host 10.123.203.17
+ permit ip host 10.130.16.17 host 10.123.203.17
+ permit ip host 10.130.16.18 host 10.123.203.17
+ permit ip host 10.130.16.19 host 10.123.203.17
+ permit ip host 10.130.16.20 host 10.123.203.17
+ permit ip host 10.130.16.21 host 10.123.203.17
+ permit ip host 10.130.16.9 host 10.123.203.18
+ permit ip host 10.130.16.10 host 10.123.203.18
+ permit ip host 10.130.16.11 host 10.123.203.18
+ permit ip host 10.130.16.12 host 10.123.203.18
+ permit ip host 10.130.16.13 host 10.123.203.18
+ permit ip host 10.130.16.14 host 10.123.203.18
+ permit ip host 10.130.16.15 host 10.123.203.18
+ permit ip host 10.130.16.16 host 10.123.203.18
+ permit ip host 10.130.16.17 host 10.123.203.18
+ permit ip host 10.130.16.18 host 10.123.203.18
+ permit ip host 10.130.16.19 host 10.123.203.18
+ permit ip host 10.130.16.20 host 10.123.203.18
+ permit ip host 10.130.16.21 host 10.123.203.18
+ permit ip host 10.130.16.9 host 10.123.203.19
+ permit ip host 10.130.16.10 host 10.123.203.19
+ permit ip host 10.130.16.11 host 10.123.203.19
+ permit ip host 10.130.16.12 host 10.123.203.19
+ permit ip host 10.130.16.13 host 10.123.203.19
+ permit ip host 10.130.16.14 host 10.123.203.19
+ permit ip host 10.130.16.15 host 10.123.203.19
+ permit ip host 10.130.16.16 host 10.123.203.19
+ permit ip host 10.130.16.17 host 10.123.203.19
+ permit ip host 10.130.16.18 host 10.123.203.19
+ permit ip host 10.130.16.19 host 10.123.203.19
+ permit ip host 10.130.16.20 host 10.123.203.19
+ permit ip host 10.130.16.21 host 10.123.203.19
+ permit ip host 10.130.0.10 host 10.123.201.17
+ permit ip host 10.130.0.10 host 10.123.202.17
+ permit ip host 10.130.0.10 host 10.123.202.18
+ permit ip host 10.130.0.10 host 10.123.202.19
+ permit ip host 10.130.0.10 host 10.123.203.17
+ permit ip host 10.130.0.10 host 10.123.203.18
+ permit ip host 10.130.0.10 host 10.123.203.19
+ permit ip host 10.130.0.11 host 10.123.201.17
+ permit ip host 10.130.0.11 host 10.123.202.17
+ permit ip host 10.130.0.11 host 10.123.202.18
+ permit ip host 10.130.0.11 host 10.123.202.19
+ permit ip host 10.130.0.11 host 10.123.203.17
+ permit ip host 10.130.0.11 host 10.123.203.18
+ permit ip host 10.130.0.11 host 10.123.203.19
+ permit ip host 10.130.0.12 host 10.123.201.17
+ permit ip host 10.130.0.12 host 10.123.202.17
+ permit ip host 10.130.0.12 host 10.123.202.18
+ permit ip host 10.130.0.12 host 10.123.202.19
+ permit ip host 10.130.0.12 host 10.123.203.17
+ permit ip host 10.130.0.12 host 10.123.203.18
+ permit ip host 10.130.0.12 host 10.123.203.19
+ permit ip host 10.130.0.13 host 10.123.201.17
+ permit ip host 10.130.0.13 host 10.123.202.17
+ permit ip host 10.130.0.13 host 10.123.202.18
+ permit ip host 10.130.0.13 host 10.123.202.19
+ permit ip host 10.130.0.13 host 10.123.203.17
+ permit ip host 10.130.0.13 host 10.123.203.18
+ permit ip host 10.130.0.13 host 10.123.203.19
+ permit ip host 10.130.0.14 host 10.123.201.17
+ permit ip host 10.130.0.14 host 10.123.202.17
+ permit ip host 10.130.0.14 host 10.123.202.18
+ permit ip host 10.130.0.14 host 10.123.202.19
+ permit ip host 10.130.0.14 host 10.123.203.17
+ permit ip host 10.130.0.14 host 10.123.203.18
+ permit ip host 10.130.0.14 host 10.123.203.19
+ permit ip host 10.130.0.15 host 10.123.201.17
+ permit ip host 10.130.0.15 host 10.123.202.17
+ permit ip host 10.130.0.15 host 10.123.202.18
+ permit ip host 10.130.0.15 host 10.123.202.19
+ permit ip host 10.130.0.15 host 10.123.203.17
+ permit ip host 10.130.0.15 host 10.123.203.18
+ permit ip host 10.130.0.15 host 10.123.203.19
+ permit ip host 10.130.0.16 host 10.123.201.17
+ permit ip host 10.130.0.16 host 10.123.202.17
+ permit ip host 10.130.0.16 host 10.123.202.18
+ permit ip host 10.130.0.16 host 10.123.202.19
+ permit ip host 10.130.0.16 host 10.123.203.17
+ permit ip host 10.130.0.16 host 10.123.203.18
+ permit ip host 10.130.0.16 host 10.123.203.19
+ permit ip host 10.130.0.17 host 10.123.201.17
+ permit ip host 10.130.0.17 host 10.123.202.17
+ permit ip host 10.130.0.17 host 10.123.202.18
+ permit ip host 10.130.0.17 host 10.123.202.19
+ permit ip host 10.130.0.17 host 10.123.203.17
+ permit ip host 10.130.0.17 host 10.123.203.18
+ permit ip host 10.130.0.17 host 10.123.203.19
+ permit ip host 10.130.0.18 host 10.123.201.17
+ permit ip host 10.130.0.18 host 10.123.202.17
+ permit ip host 10.130.0.18 host 10.123.202.18
+ permit ip host 10.130.0.18 host 10.123.202.19
+ permit ip host 10.130.0.18 host 10.123.203.17
+ permit ip host 10.130.0.18 host 10.123.203.18
+ permit ip host 10.130.0.18 host 10.123.203.19
+ permit ip host 10.130.0.19 host 10.123.201.17
+ permit ip host 10.130.0.19 host 10.123.202.17
+ permit ip host 10.130.0.19 host 10.123.202.18
+ permit ip host 10.130.0.19 host 10.123.202.19
+ permit ip host 10.130.0.19 host 10.123.203.17
+ permit ip host 10.130.0.19 host 10.123.203.18
+ permit ip host 10.130.0.19 host 10.123.203.19
+ permit ip host 10.130.0.10 host 10.137.32.201
+ permit ip host 10.130.0.10 host 10.137.32.202
+ permit ip host 10.130.0.10 host 10.137.32.203
+ permit ip host 10.130.0.10 host 10.137.32.213
+ permit ip host 10.130.0.11 host 10.137.32.201
+ permit ip host 10.130.0.11 host 10.137.32.202
+ permit ip host 10.130.0.11 host 10.137.32.203
+ permit ip host 10.130.0.11 host 10.137.32.213
+ permit ip host 10.130.0.12 host 10.137.32.201
+ permit ip host 10.130.0.12 host 10.137.32.202
+ permit ip host 10.130.0.12 host 10.137.32.203
+ permit ip host 10.130.0.12 host 10.137.32.213
+ permit ip host 10.130.0.13 host 10.137.32.201
+ permit ip host 10.130.0.13 host 10.137.32.202
+ permit ip host 10.130.0.13 host 10.137.32.203
+ permit ip host 10.130.0.13 host 10.137.32.213
+ permit ip host 10.130.0.14 host 10.137.32.201
+ permit ip host 10.130.0.14 host 10.137.32.202
+ permit ip host 10.130.0.14 host 10.137.32.203
+ permit ip host 10.130.0.14 host 10.137.32.213
+ permit ip host 10.130.0.15 host 10.137.32.201
+ permit ip host 10.130.0.15 host 10.137.32.202
+ permit ip host 10.130.0.15 host 10.137.32.203
+ permit ip host 10.130.0.15 host 10.137.32.213
+ permit ip host 10.130.0.16 host 10.137.32.201
+ permit ip host 10.130.0.16 host 10.137.32.202
+ permit ip host 10.130.0.16 host 10.137.32.203
+ permit ip host 10.130.0.16 host 10.137.32.213
+ permit ip host 10.130.16.9 host 10.137.32.201
+ permit ip host 10.130.16.9 host 10.137.32.202
+ permit ip host 10.130.16.9 host 10.137.32.203
+ permit ip host 10.130.16.9 host 10.137.32.213
+ permit ip host 10.130.16.10 host 10.137.32.201
+ permit ip host 10.130.16.10 host 10.137.32.202
+ permit ip host 10.130.16.10 host 10.137.32.203
+ permit ip host 10.130.16.10 host 10.137.32.213
+ permit ip host 10.130.16.11 host 10.137.32.201
+ permit ip host 10.130.16.11 host 10.137.32.202
+ permit ip host 10.130.16.11 host 10.137.32.203
+ permit ip host 10.130.16.11 host 10.137.32.213
+ permit ip host 10.130.16.12 host 10.137.32.201
+ permit ip host 10.130.16.12 host 10.137.32.202
+ permit ip host 10.130.16.12 host 10.137.32.203
+ permit ip host 10.130.16.12 host 10.137.32.213
+ permit ip host 10.130.16.14 host 10.137.32.201
+ permit ip host 10.130.16.14 host 10.137.32.202
+ permit ip host 10.130.16.14 host 10.137.32.203
+ permit ip host 10.130.16.14 host 10.137.32.213
+ permit ip host 10.130.16.15 host 10.137.32.201
+ permit ip host 10.130.16.15 host 10.137.32.202
+ permit ip host 10.130.16.15 host 10.137.32.203
+ permit ip host 10.130.16.15 host 10.137.32.213
+ permit ip host 10.130.16.16 host 10.137.32.201
+ permit ip host 10.130.16.16 host 10.137.32.202
+ permit ip host 10.130.16.16 host 10.137.32.203
+ permit ip host 10.130.16.16 host 10.137.32.213
+ permit ip host 10.130.16.17 host 10.137.32.201
+ permit ip host 10.130.16.17 host 10.137.32.202
+ permit ip host 10.130.16.17 host 10.137.32.203
+ permit ip host 10.130.16.17 host 10.137.32.213
+ permit ip host 10.130.16.18 host 10.137.32.201
+ permit ip host 10.130.16.18 host 10.137.32.202
+ permit ip host 10.130.16.18 host 10.137.32.203
+ permit ip host 10.130.16.18 host 10.137.32.213
+ permit ip host 10.130.16.19 host 10.137.32.201
+ permit ip host 10.130.16.19 host 10.137.32.202
+ permit ip host 10.130.16.19 host 10.137.32.203
+ permit ip host 10.130.16.19 host 10.137.32.213
+ permit ip host 10.130.16.20 host 10.137.32.201
+ permit ip host 10.130.16.20 host 10.137.32.202
+ permit ip host 10.130.16.20 host 10.137.32.203
+ permit ip host 10.130.16.20 host 10.137.32.213
+ permit ip host 10.130.16.21 host 10.137.32.201
+ permit ip host 10.130.16.21 host 10.137.32.202
+ permit ip host 10.130.16.21 host 10.137.32.203
+ permit ip host 10.130.16.21 host 10.137.32.213
+ permit ip host 10.130.8.8 host 10.137.32.201
+ permit ip host 10.130.8.8 host 10.137.32.202
+ permit ip host 10.130.8.8 host 10.137.32.203
+ permit ip host 10.130.8.8 host 10.137.32.213
+ permit ip host 10.130.8.9 host 10.137.32.201
+ permit ip host 10.130.8.9 host 10.137.32.202
+ permit ip host 10.130.8.9 host 10.137.32.203
+ permit ip host 10.130.8.9 host 10.137.32.213
+ permit ip host 10.130.0.10 host 10.122.104.115
+ permit ip host 10.130.0.10 host 10.122.104.235
+ permit ip host 10.130.0.10 host 10.122.76.81
+ permit ip host 10.130.0.10 host 10.122.76.82
+ permit ip host 10.130.0.10 host 10.122.127.187
+ permit ip host 10.130.0.11 host 10.122.104.115
+ permit ip host 10.130.0.11 host 10.122.104.235
+ permit ip host 10.130.0.11 host 10.122.76.81
+ permit ip host 10.130.0.11 host 10.122.76.82
+ permit ip host 10.130.0.11 host 10.122.127.187
+ permit ip host 10.130.0.12 host 10.122.104.115
+ permit ip host 10.130.0.12 host 10.122.104.235
+ permit ip host 10.130.0.12 host 10.122.76.81
+ permit ip host 10.130.0.12 host 10.122.76.82
+ permit ip host 10.130.0.12 host 10.122.127.187
+ permit ip host 10.130.0.13 host 10.122.104.115
+ permit ip host 10.130.0.13 host 10.122.104.235
+ permit ip host 10.130.0.13 host 10.122.76.81
+ permit ip host 10.130.0.13 host 10.122.76.82
+ permit ip host 10.130.0.13 host 10.122.127.187
+ permit ip host 10.130.0.14 host 10.122.104.115
+ permit ip host 10.130.0.14 host 10.122.104.235
+ permit ip host 10.130.0.14 host 10.122.76.81
+ permit ip host 10.130.0.14 host 10.122.76.82
+ permit ip host 10.130.0.14 host 10.122.127.187
+ permit ip host 10.130.0.15 host 10.122.104.115
+ permit ip host 10.130.0.15 host 10.122.104.235
+ permit ip host 10.130.0.15 host 10.122.76.81
+ permit ip host 10.130.0.15 host 10.122.76.82
+ permit ip host 10.130.0.15 host 10.122.127.187
+ permit ip host 10.130.0.16 host 10.122.104.115
+ permit ip host 10.130.0.16 host 10.122.104.235
+ permit ip host 10.130.0.16 host 10.122.76.81
+ permit ip host 10.130.0.16 host 10.122.76.82
+ permit ip host 10.130.0.16 host 10.122.127.187
+ permit ip host 10.130.16.9 host 10.122.104.115
+ permit ip host 10.130.16.9 host 10.122.104.235
+ permit ip host 10.130.16.9 host 10.122.76.81
+ permit ip host 10.130.16.9 host 10.122.76.82
+ permit ip host 10.130.16.9 host 10.122.127.187
+ permit ip host 10.130.16.10 host 10.122.104.115
+ permit ip host 10.130.16.10 host 10.122.104.235
+ permit ip host 10.130.16.10 host 10.122.76.81
+ permit ip host 10.130.16.10 host 10.122.76.82
+ permit ip host 10.130.16.10 host 10.122.127.187
+ permit ip host 10.130.16.11 host 10.122.104.115
+ permit ip host 10.130.16.11 host 10.122.104.235
+ permit ip host 10.130.16.11 host 10.122.76.81
+ permit ip host 10.130.16.11 host 10.122.76.82
+ permit ip host 10.130.16.11 host 10.122.127.187
+ permit ip host 10.130.16.12 host 10.122.104.115
+ permit ip host 10.130.16.12 host 10.122.104.235
+ permit ip host 10.130.16.12 host 10.122.76.81
+ permit ip host 10.130.16.12 host 10.122.76.82
+ permit ip host 10.130.16.12 host 10.122.127.187
+ permit ip host 10.130.16.14 host 10.122.104.115
+ permit ip host 10.130.16.14 host 10.122.104.235
+ permit ip host 10.130.16.14 host 10.122.76.81
+ permit ip host 10.130.16.14 host 10.122.76.82
+ permit ip host 10.130.16.14 host 10.122.127.187
+ permit ip host 10.130.16.15 host 10.122.104.115
+ permit ip host 10.130.16.15 host 10.122.104.235
+ permit ip host 10.130.16.15 host 10.122.76.81
+ permit ip host 10.130.16.15 host 10.122.76.82
+ permit ip host 10.130.16.15 host 10.122.127.187
+ permit ip host 10.130.16.16 host 10.122.104.115
+ permit ip host 10.130.16.16 host 10.122.104.235
+ permit ip host 10.130.16.16 host 10.122.76.81
+ permit ip host 10.130.16.16 host 10.122.76.82
+ permit ip host 10.130.16.16 host 10.122.127.187
+ permit ip host 10.130.16.17 host 10.122.104.115
+ permit ip host 10.130.16.17 host 10.122.104.235
+ permit ip host 10.130.16.17 host 10.122.76.81
+ permit ip host 10.130.16.17 host 10.122.76.82
+ permit ip host 10.130.16.17 host 10.122.127.187
+ permit ip host 10.130.16.18 host 10.122.104.115
+ permit ip host 10.130.16.18 host 10.122.104.235
+ permit ip host 10.130.16.18 host 10.122.76.81
+ permit ip host 10.130.16.18 host 10.122.76.82
+ permit ip host 10.130.16.18 host 10.122.127.187
+ permit ip host 10.130.16.19 host 10.122.104.115
+ permit ip host 10.130.16.19 host 10.122.104.235
+ permit ip host 10.130.16.19 host 10.122.76.81
+ permit ip host 10.130.16.19 host 10.122.76.82
+ permit ip host 10.130.16.19 host 10.122.127.187
+ permit ip host 10.130.16.20 host 10.122.104.115
+ permit ip host 10.130.16.20 host 10.122.104.235
+ permit ip host 10.130.16.20 host 10.122.76.81
+ permit ip host 10.130.16.20 host 10.122.76.82
+ permit ip host 10.130.16.20 host 10.122.127.187
+ permit ip host 10.130.16.21 host 10.122.104.115
+ permit ip host 10.130.16.21 host 10.122.104.235
+ permit ip host 10.130.16.21 host 10.122.76.81
+ permit ip host 10.130.16.21 host 10.122.76.82
+ permit ip host 10.130.16.21 host 10.122.127.187
+ permit ip host 10.130.8.8 host 10.122.104.115
+ permit ip host 10.130.8.8 host 10.122.104.235
+ permit ip host 10.130.8.8 host 10.122.76.81
+ permit ip host 10.130.8.8 host 10.122.76.82
+ permit ip host 10.130.8.8 host 10.122.127.187
+ permit ip host 10.130.8.9 host 10.122.104.115
+ permit ip host 10.130.8.9 host 10.122.104.235
+ permit ip any 10.142.200.0 0.0.1.255
+ permit ip any 10.142.202.0 0.0.1.255
+ permit tcp any range 50020 50039 any
+ permit tcp any any range 50020 50039
+ permit udp any range 50020 50039 any
+ permit udp any any range 50020 50039
+ip access-list extended rpvm_voz_rtp
+ permit ip host 10.130.24.242 any
+ permit ip any host 10.130.24.242
+ permit ip 10.121.25.0 0.0.0.255 any
+ permit ip any 10.121.25.0 0.0.0.255
+ permit udp any any range 16384 32767
+ permit udp any range 16384 32767 any
+ permit udp any any range 3500 3700
+ permit udp any range 3500 3700 any
+ permit udp any any range 59010 59012
+ permit udp any range 59010 59012 any
+ permit udp any any range 59014 59016
+ permit udp any range 59014 59016 any
+ permit udp any eq 59500 60300 any
+ permit udp any any eq 59500 60300
+ permit tcp any range 59101 59102 any
+ permit tcp any any range 59101 59102
+ permit tcp any range 4000 4005 any
+ permit tcp any any range 4000 4005
+ permit tcp any range 50000 50019 any
+ permit tcp any any range 50000 50019
+ permit udp any range 50000 50019 any
+ permit udp any any range 50000 50019
+ip access-list extended rpvm_voz_signaling
+ permit tcp any eq 1720 any
+ permit tcp any any eq 1720
+ permit udp any eq 1996 any
+ permit udp any any eq 1996
+ permit tcp any eq 2000 any
+ permit tcp any any eq 2000
+ permit tcp any eq 2443 any
+ permit tcp any any eq 2443
+ permit tcp any eq 2748 any
+ permit tcp any any eq 2748
+ permit udp any eq 5060 5061 any
+ permit udp any any eq 5060 5061
+ permit tcp any eq 5060 5061 any
+ permit tcp any any eq 5060 5061
+ permit udp any eq tftp any
+ permit udp any any eq tftp
+ permit tcp any eq 2445 any
+ permit tcp any any eq 2445
+ permit tcp any eq 3804 any
+ permit tcp any any eq 3804
+ permit tcp any eq 6970 any
+ permit tcp any any eq 6970
+ permit tcp any eq 12028 any
+ permit tcp any any eq 12028
+ permit tcp any eq 42027 any
+ permit tcp any any eq 42027
+!
+!
+ip prefix-list ACL_KOF_Default_Route_Without_AZ_BGP_Community description *** Advertise Default Route In National AS8151 ***
+ip prefix-list ACL_KOF_Default_Route_Without_AZ_BGP_Community seq 5 permit 0.0.0.0/0
+!
+ip prefix-list ACL_KOF_Prefix_10.0.0.0/8_With_AZ_BGP_Community description *** Mark SDWAN Outgoing 10.0.0.0/8 Prefix to MPLS With Azure Community ***
+ip prefix-list ACL_KOF_Prefix_10.0.0.0/8_With_AZ_BGP_Community seq 5 permit 10.0.0.0/8
+!
+ip prefix-list ACL_KOF_Prefixes_With_AZ_BGP_Community description *** Mark SDWAN Outgoing Prefixes to MPLS With Azure Community ***
+ip prefix-list ACL_KOF_Prefixes_With_AZ_BGP_Community seq 5 permit 10.0.0.0/8
+ip prefix-list ACL_KOF_Prefixes_With_AZ_BGP_Community seq 10 permit 131.150.180.0/23
+ip prefix-list ACL_KOF_Prefixes_With_AZ_BGP_Community seq 15 permit 131.150.196.0/23
+ip prefix-list ACL_KOF_Prefixes_With_AZ_BGP_Community seq 20 permit 138.35.0.0/16
+ip prefix-list ACL_KOF_Prefixes_With_AZ_BGP_Community seq 25 permit 145.47.102.0/24
+ip prefix-list ACL_KOF_Prefixes_With_AZ_BGP_Community seq 30 permit 148.91.82.0/23
+ip prefix-list ACL_KOF_Prefixes_With_AZ_BGP_Community seq 35 permit 148.91.92.0/23
+ip prefix-list ACL_KOF_Prefixes_With_AZ_BGP_Community seq 40 permit 172.29.0.0/16
+ip prefix-list ACL_KOF_Prefixes_With_AZ_BGP_Community seq 45 permit 191.100.208.0/21
+ip prefix-list ACL_KOF_Prefixes_With_AZ_BGP_Community seq 50 permit 192.168.52.0/23
+ip prefix-list ACL_KOF_Prefixes_With_AZ_BGP_Community seq 55 permit 192.168.198.0/23
+!
+ip prefix-list ACL_KOF_Prefixes_Without_AZ_BGP_Community description *** No Mark SDWAN Outgoing Prefixes to MPLS With Azure Community ***
+ip prefix-list ACL_KOF_Prefixes_Without_AZ_BGP_Community seq 4 deny 10.138.6.15/32
+ip prefix-list ACL_KOF_Prefixes_Without_AZ_BGP_Community seq 5 permit 10.0.0.0/8 ge 9
+ip prefix-list ACL_KOF_Prefixes_Without_AZ_BGP_Community seq 10 permit 131.150.180.0/23 ge 24
+ip prefix-list ACL_KOF_Prefixes_Without_AZ_BGP_Community seq 15 permit 131.150.196.0/23 ge 24
+ip prefix-list ACL_KOF_Prefixes_Without_AZ_BGP_Community seq 20 permit 138.35.0.0/16 ge 17
+ip prefix-list ACL_KOF_Prefixes_Without_AZ_BGP_Community seq 25 permit 145.47.102.0/24 ge 25
+ip prefix-list ACL_KOF_Prefixes_Without_AZ_BGP_Community seq 30 permit 148.91.82.0/23 ge 24
+ip prefix-list ACL_KOF_Prefixes_Without_AZ_BGP_Community seq 35 permit 148.91.92.0/23 ge 24
+ip prefix-list ACL_KOF_Prefixes_Without_AZ_BGP_Community seq 40 permit 172.29.0.0/16 ge 17
+ip prefix-list ACL_KOF_Prefixes_Without_AZ_BGP_Community seq 45 permit 191.100.208.0/21 ge 22
+ip prefix-list ACL_KOF_Prefixes_Without_AZ_BGP_Community seq 50 permit 192.168.52.0/23 ge 24
+ip prefix-list ACL_KOF_Prefixes_Without_AZ_BGP_Community seq 55 permit 192.168.198.0/23 ge 24
+!
+ip prefix-list ANTILOOP description FILTRO ANTI-LOOP
+ip prefix-list ANTILOOP seq 1 deny 0.0.0.0/0
+ip prefix-list ANTILOOP seq 5 deny 10.121.230.0/28
+ip prefix-list ANTILOOP seq 10 deny 10.145.254.16/32
+ip prefix-list ANTILOOP seq 15 deny 10.145.254.17/32
+ip prefix-list ANTILOOP seq 20 deny 10.145.254.28/32
+ip prefix-list ANTILOOP seq 25 deny 10.213.25.48/30
+ip prefix-list ANTILOOP seq 27 deny 10.121.230.16/28
+ip prefix-list ANTILOOP seq 30 deny 10.213.74.56/30
+ip prefix-list ANTILOOP seq 35 deny 10.163.247.0/24
+ip prefix-list ANTILOOP seq 40 deny 10.163.248.0/24
+ip prefix-list ANTILOOP seq 45 deny 10.159.8.0/24
+ip prefix-list ANTILOOP seq 50 permit 172.21.10.32/30
+ip prefix-list ANTILOOP seq 51 permit 172.21.10.40/30
+ip prefix-list ANTILOOP seq 52 permit 172.21.10.48/30
+ip prefix-list ANTILOOP seq 53 permit 172.28.11.36/30
+ip prefix-list ANTILOOP seq 55 permit 172.21.10.44/30
+ip prefix-list ANTILOOP seq 56 permit 172.25.10.72/30
+ip prefix-list ANTILOOP seq 57 permit 172.25.10.68/30
+ip prefix-list ANTILOOP seq 58 permit 172.25.10.64/30
+ip prefix-list ANTILOOP seq 59 permit 172.26.10.32/30
+ip prefix-list ANTILOOP seq 60 permit 172.26.10.36/30
+ip prefix-list ANTILOOP seq 61 permit 172.27.10.32/30
+ip prefix-list ANTILOOP seq 62 permit 172.21.10.56/30
+ip prefix-list ANTILOOP seq 63 permit 172.21.10.36/30
+ip prefix-list ANTILOOP seq 64 permit 172.28.10.32/30
+ip prefix-list ANTILOOP seq 65 permit 172.28.11.44/30
+ip prefix-list ANTILOOP seq 66 permit 172.28.11.40/30
+ip prefix-list ANTILOOP seq 68 permit 172.24.10.36/30
+ip prefix-list ANTILOOP seq 69 permit 172.24.10.32/30
+ip prefix-list ANTILOOP seq 70 permit 172.28.11.32/30
+ip prefix-list ANTILOOP seq 72 permit 172.25.10.32/30
+ip prefix-list ANTILOOP seq 73 permit 10.163.250.32/29
+ip prefix-list ANTILOOP seq 80 deny 172.21.10.0/24 ge 25
+ip prefix-list ANTILOOP seq 81 deny 172.21.10.0/24
+ip prefix-list ANTILOOP seq 82 deny 172.28.10.0/24 ge 25
+ip prefix-list ANTILOOP seq 83 deny 172.28.10.0/24
+ip prefix-list ANTILOOP seq 84 deny 172.28.11.0/24 ge 25
+ip prefix-list ANTILOOP seq 85 deny 172.28.11.0/24
+ip prefix-list ANTILOOP seq 90 deny 172.26.10.0/24
+ip prefix-list ANTILOOP seq 95 deny 172.26.10.0/24 ge 25
+ip prefix-list ANTILOOP seq 100 deny 172.25.10.0/24
+ip prefix-list ANTILOOP seq 105 deny 172.25.10.0/24 ge 25
+ip prefix-list ANTILOOP seq 110 deny 172.24.10.0/24
+ip prefix-list ANTILOOP seq 115 deny 172.24.10.0/24 ge 25
+ip prefix-list ANTILOOP seq 116 deny 172.27.10.0/24
+ip prefix-list ANTILOOP seq 117 deny 172.27.10.0/24 ge 25
+ip prefix-list ANTILOOP seq 118 deny 10.121.247.0/24
+ip prefix-list ANTILOOP seq 119 deny 10.121.248.0/24
+ip prefix-list ANTILOOP seq 200 deny 10.120.0.0/16
+ip prefix-list ANTILOOP seq 201 deny 10.121.0.0/16
+ip prefix-list ANTILOOP seq 202 deny 10.128.0.0/16
+ip prefix-list ANTILOOP seq 203 deny 10.135.0.0/16
+ip prefix-list ANTILOOP seq 204 deny 10.138.0.0/16
+ip prefix-list ANTILOOP seq 205 deny 10.139.0.0/16
+ip prefix-list ANTILOOP seq 206 deny 10.140.0.0/16
+ip prefix-list ANTILOOP seq 207 deny 10.141.0.0/16
+ip prefix-list ANTILOOP seq 208 deny 10.142.0.0/16
+ip prefix-list ANTILOOP seq 209 deny 10.143.0.0/16
+ip prefix-list ANTILOOP seq 210 deny 10.144.0.0/16
+ip prefix-list ANTILOOP seq 211 deny 10.145.0.0/16
+ip prefix-list ANTILOOP seq 212 deny 131.150.180.0/23
+ip prefix-list ANTILOOP seq 213 deny 131.150.196.0/23
+ip prefix-list ANTILOOP seq 214 deny 138.35.0.0/16
+ip prefix-list ANTILOOP seq 215 deny 145.47.102.0/24
+ip prefix-list ANTILOOP seq 216 deny 148.91.82.0/23
+ip prefix-list ANTILOOP seq 217 deny 148.91.92.0/23
+ip prefix-list ANTILOOP seq 218 deny 172.29.0.0/16
+ip prefix-list ANTILOOP seq 219 deny 191.100.208.0/21
+ip prefix-list ANTILOOP seq 220 deny 192.168.52.0/23
+ip prefix-list ANTILOOP seq 221 deny 192.168.198.0/23
+ip prefix-list ANTILOOP seq 300 deny 10.1.0.0/24
+ip prefix-list ANTILOOP seq 301 deny 10.125.0.0/16
+ip prefix-list ANTILOOP seq 302 deny 10.125.0.0/16 ge 17
+ip prefix-list ANTILOOP seq 303 deny 10.126.0.0/16
+ip prefix-list ANTILOOP seq 304 deny 10.126.0.0/16 ge 17
+ip prefix-list ANTILOOP seq 305 deny 10.127.0.0/16
+ip prefix-list ANTILOOP seq 306 deny 10.127.0.0/16 ge 17
+ip prefix-list ANTILOOP seq 307 deny 10.128.0.0/24
+ip prefix-list ANTILOOP seq 308 deny 10.160.0.0/16
+ip prefix-list ANTILOOP seq 309 deny 10.160.0.0/16 ge 17
+ip prefix-list ANTILOOP seq 310 deny 10.168.0.0/16
+ip prefix-list ANTILOOP seq 311 deny 10.168.0.0/16 ge 17
+ip prefix-list ANTILOOP seq 500 permit 0.0.0.0/0 le 32
+!
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 10 deny 10.149.0.0/16
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 15 deny 10.149.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 18 deny 10.123.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 20 deny 10.123.156.0/24
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 25 deny 10.123.228.0/26
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 30 deny 10.122.0.0/18
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 35 deny 10.122.0.0/18 ge 19
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 40 deny 10.150.0.0/17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 45 deny 10.150.0.0/17 ge 18
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 50 deny 10.124.32.0/19
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 55 deny 10.124.32.0/19 ge 20
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 60 deny 10.148.32.0/19
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 65 deny 10.148.32.0/19 ge 20
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 70 deny 10.122.64.0/18
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 71 deny 10.122.64.0/18 ge 19
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 72 deny 10.137.0.0/16
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 73 deny 10.137.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 74 deny 10.146.0.0/16
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 75 deny 10.146.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 76 deny 10.151.0.0/16
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 77 deny 10.151.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 78 deny 10.152.0.0/16
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 79 deny 10.152.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 80 deny 10.124.96.0/19
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 81 deny 10.124.96.0/19 ge 20
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 82 deny 10.148.96.0/19
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 83 deny 10.148.96.0/19 ge 20
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 84 deny 10.16.0.0/16
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 85 deny 10.16.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 86 deny 10.18.0.0/23
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 87 deny 10.18.1.0/24
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 88 deny 10.148.128.0/17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 89 deny 10.148.128.0/17 ge 18
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 90 deny 10.124.0.0/19
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 91 deny 10.124.0.0/19 ge 20
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 92 deny 10.148.0.0/19
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 93 deny 10.148.0.0/19 ge 20
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 94 deny 10.124.64.0/19
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 95 deny 10.124.64.0/19 ge 20
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 96 deny 10.148.64.0/19
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 97 deny 10.148.64.0/19 ge 20
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 98 deny 10.1.32.0/19
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 99 deny 10.1.32.0/20
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 100 deny 10.159.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 101 deny 10.162.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 102 deny 10.163.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 103 deny 172.21.250.0/24
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 104 deny 10.142.0.0/16
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 105 deny 10.142.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 150 deny 10.153.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 151 deny 10.154.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 152 deny 10.155.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 153 deny 10.156.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 154 deny 10.158.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 155 deny 10.173.0.0/16 ge 17
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 156 deny 10.120.17.0/24
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 157 deny 10.120.40.0/23
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 158 deny 10.120.222.0/24
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 159 deny 10.120.248.0/21
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 160 deny 10.135.72.0/23
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 161 deny 10.139.40.0/21
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 162 deny 10.139.252.0/23
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 163 deny 10.145.148.0/22
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 200 deny 155.61.0.0/16
+ip prefix-list BLOCK_SDWAN_PREFIX_OUT_TO_MPLS seq 500 permit 0.0.0.0/0 le 32
+!
+ip prefix-list PRIMARIAS description PREFIJOS PRIMARIOS
+ip prefix-list PRIMARIAS seq 5 permit 10.121.230.0/28
+ip prefix-list PRIMARIAS seq 6 permit 172.10.12.24/32
+ip prefix-list PRIMARIAS seq 100 deny 0.0.0.0/0 le 32
+!
+ip prefix-list control_sdwan_in seq 10 deny 10.123.250.32/30
+ip prefix-list control_sdwan_in seq 20 deny 10.149.125.32/30
+ip prefix-list control_sdwan_in seq 80 deny 10.121.247.0/24
+ip prefix-list control_sdwan_in seq 90 deny 10.121.248.0/24
+ip prefix-list control_sdwan_in seq 100 permit 0.0.0.0/0 le 32
+!
+ip prefix-list control_sdwan_out seq 40 deny 10.121.20.96/29
+ip prefix-list control_sdwan_out seq 50 deny 10.123.250.32/30
+ip prefix-list control_sdwan_out seq 80 deny 10.121.247.0/24
+ip prefix-list control_sdwan_out seq 90 deny 10.121.248.0/24
+ip prefix-list control_sdwan_out seq 100 deny 131.150.180.0/23
+ip prefix-list control_sdwan_out seq 110 deny 131.150.196.0/23
+ip prefix-list control_sdwan_out seq 120 deny 138.35.0.0/16
+ip prefix-list control_sdwan_out seq 130 deny 145.47.102.0/24
+ip prefix-list control_sdwan_out seq 140 deny 148.91.82.0/23
+ip prefix-list control_sdwan_out seq 150 deny 148.91.92.0/23
+ip prefix-list control_sdwan_out seq 160 deny 172.29.0.0/16
+ip prefix-list control_sdwan_out seq 170 deny 191.100.208.0/21
+ip prefix-list control_sdwan_out seq 180 deny 192.168.52.0/23
+ip prefix-list control_sdwan_out seq 190 deny 192.168.198.0/23
+ip prefix-list control_sdwan_out seq 2000 permit 0.0.0.0/0 le 32
+logging history alerts
+logging source-interface GigabitEthernet0/0/1
+logging host 138.35.6.135
+access-list 93 remark *** CAPGEMINI SNMP Access ***
+access-list 93 permit 10.122.122.16 0.0.0.15
+access-list 93 permit 10.121.202.176 0.0.0.15
+access-list 93 permit 10.153.0.128 0.0.0.15
+access-list 97 remark *** TELMEX SNMP Access ***
+access-list 97 permit 187.173.113.16 0.0.0.15
+access-list 99 permit 10.122.122.86
+access-list 99 permit 10.121.19.243
+access-list 99 permit 10.121.19.244
+access-list 99 remark *** DXC GNTA SNMP Access ***
+access-list 99 permit 138.35.216.0 0.0.7.255
+access-list 99 remark GNTA SNMP Access
+access-list 99 permit 207.169.17.0 0.0.0.255
+access-list 99 permit 148.91.0.0 0.0.255.255
+access-list 99 permit 138.35.7.0 0.0.0.255
+access-list 99 permit 138.35.6.0 0.0.0.255
+!
+route-map RM_KOF_MEX_Summarized_Prefixes permit 10
+ set community 8151:1026 28513:1281 36017:12076 65194:789
+!
+route-map RM_BGP_OUT_TO_MPLS permit 1
+ match ip address ACL_KOF_Default_Route_Without_Community_TAG
+ set community 8151:1026 additive
+!
+route-map RM_BGP_OUT_TO_MPLS permit 5
+ match ip address prefix-list ACL_KOF_Prefixes_Without_AZ_BGP_Community
+ set community 8151:1026 28513:1281 additive
+!
+route-map RM_BGP_OUT_TO_MPLS permit 20
+ set community 8151:1026 28513:1281 36017:12076 additive
+!
+route-map BLACK deny 5
+ match community 1
+!
+route-map BLACK permit 10
+!
+snmp-server group Grsnmpv3CAP v3 priv read CapgeminiVieW3 access 93
+snmp-server group Grsnmpv3DXC v3 priv read DXCKOFvieW3 access 99
+snmp-server group Grsnmpv3TMX v3 priv read TelmexVieW3 access 97
+snmp-server view DXCKOFvieW3 iso included
+snmp-server view DXCKOFvieW3 mib-2 included
+snmp-server view DXCKOFvieW3 system included
+snmp-server view TelmexVieW3 iso included
+snmp-server view TelmexVieW3 mib-2 included
+snmp-server view TelmexVieW3 system included
+snmp-server view TelmexVieW3 interfaces included
+snmp-server view TelmexVieW3 cisco included
+snmp-server view CapgeminiVieW3 iso included
+snmp-server view CapgeminiVieW3 mib-2 included
+snmp-server view CapgeminiVieW3 system included
+snmp-server view CapgeminiVieW3 interfaces included
+snmp-server view CapgeminiVieW3 cisco included
+snmp-server community GN0CR3AD RO 99
+snmp-server trap-source GigabitEthernet0/0/1
+snmp-server contact DXC Operations @ +55-11-4348-6684 (alterar para numero do GNOC)
+snmp-server system-shutdown
+snmp-server enable traps snmp authentication linkdown linkup coldstart warmstart
+snmp-server enable traps tty
+snmp-server enable traps ospf state-change
+snmp-server enable traps ospf errors
+snmp-server enable traps config
+snmp-server enable traps entity
+snmp-server enable traps hsrp
+snmp-server enable traps cpu threshold
+snmp-server enable traps syslog
+snmp-server enable traps bgp
+snmp-server enable traps vtp
+snmp-server enable traps vlancreate
+snmp-server enable traps vlandelete
+snmp-server host 138.35.6.135 version 3 priv DxCFEMSA 
+snmp-server host 138.35.6.135 GN0CR3AD 
+snmp ifmib ifindex persist
+!
+tacacs-server key 7 1407515F54382E3B2E072331361C28010A
+tacacs server TACACSServer1
+ address ipv4 138.35.223.70
+ key 7 022C086F5B16442B5859421A
+tacacs server TACACSServer2
+ address ipv4 138.35.223.100
+ key 7 15380738543A602E3C247E21
+tacacs server DXC-GNTA-TACACS-03
+ key 7 062C03151C5E421311005908
+ timeout 5
+tacacs server DXC-GNTA-TACACS-04
+ key 7 002E1F32544B400C1B36074D
+ timeout 5
+!
+!
+!
+control-plane
+!
+!
+voice-port 0/1/0:0
+ define Tx-bits idle 1101
+ define Tx-bits seize 0101
+ define Rx-bits idle 1101
+ define Rx-bits seize 0101
+ input gain -3
+ cptone MX
+!
+voice-port 0/1/1:0
+ define Tx-bits idle 1101
+ define Tx-bits seize 0101
+ define Rx-bits idle 1101
+ define Rx-bits seize 0101
+ input gain -3
+ cptone MX
+ !
+ !
+ !
+ !
+!
+mgcp behavior rsip-range tgcp-only
+mgcp behavior comedia-role none
+mgcp behavior comedia-check-media-src disable
+mgcp behavior comedia-sdp-force disable
+!
+mgcp profile default
+!
+!
+!
+!
+dial-peer voice 1 pots
+ tone ringback alert-no-PI
+ destination-pattern 830....
+ port 0/1/0:0
+ forward-digits 6
+ prefix 8
+!
+dial-peer voice 2 pots
+ destination-pattern 831....
+ port 0/1/0:0
+ forward-digits 6
+ prefix 8
+!
+dial-peer voice 10000 voip
+ tone ringback alert-no-PI
+ description CONEXION VOZ A GATEKEEPERS
+ destination-pattern .T
+ session target ras
+ incoming called-number .
+ dtmf-relay h245-alphanumeric
+ codec g729r8 bytes 50
+ ip qos dscp cs3 media
+ ip qos dscp cs3 signaling
+ no vad
+!
+dial-peer voice 3 pots
+ tone ringback alert-no-PI
+ destination-pattern 810....
+ port 0/1/0:0
+ forward-digits 6
+ prefix 8
+!
+dial-peer voice 4 pots
+ tone ringback alert-no-PI
+ destination-pattern 5280210....
+ port 0/1/0:0
+ forward-digits 6
+ prefix 8
+!
+dial-peer voice 5 pots
+ tone ringback alert-no-PI
+ destination-pattern 5280230....
+ port 0/1/0:0
+ forward-digits 4
+ prefix 831
+!
+dial-peer voice 7 pots
+ tone ringback alert-no-PI
+ destination-pattern 52802304987
+ port 0/1/0:0
+ forward-digits 4
+ prefix 831
+!
+dial-peer voice 8 pots
+ tone ringback alert-no-PI
+ destination-pattern 8388...
+ port 0/1/0:0
+ forward-digits 7
+ prefix 8
+!
+dial-peer voice 9 pots
+ tone ringback alert-no-PI
+ destination-pattern 832....
+ port 0/1/0:0
+ forward-digits 7
+!
+dial-peer voice 6 pots
+ tone ringback alert-no-PI
+ destination-pattern 5280231....
+ port 0/1/0:0
+ forward-digits 6
+ prefix 8
+!
+!
+gateway 
+ timer receive-rtp 1200
+!
+privilege exec level 0 dir
+privilege exec level 0 traceroute
+privilege exec level 0 ping
+privilege exec level 0 terminal monitor
+privilege exec level 0 terminal
+privilege exec level 0 show ip route
+privilege exec level 0 show ip
+privilege exec level 0 show logging
+privilege exec level 0 show running-config
+privilege exec level 0 show configuration
+privilege exec level 0 show
+banner motd ^CC
+*******************************************************************
+Access to this computer system and associated network, computer
+resources, or data is restricted to those authorized by DXC.
+This computer and related networks, resources or data may only be
+used for business purposes of DXC and its customers. Use by
+unauthorized individual or for an unauthorized purpose is a
+violation of Federal and/or State law. Violators will be prosecuted.
+For technical assistance call DXC Operations @ +55-11-4348-6684
+(alterar para numero do GNOC).
+********************************************************************^C
+!
+line con 0
+ exec-timeout 15 0
+ stopbits 1
+line aux 0
+ exec-timeout 30 0
+ stopbits 1
+line vty 0 4
+ exec-timeout 15 0
+ logging synchronous
+ transport input ssh
+ transport output telnet ssh
+line vty 5 15
+ exec-timeout 15 0
+ logging synchronous
+ transport input ssh
+ transport output telnet ssh
+!
+network-clock synchronization automatic
+network-clock input-source 1 controller E1 0/1/0
+ntp source GigabitEthernet0/0/1
+ntp server 138.35.151.49 prefer
+ntp server 138.35.151.113
+!
+end
+
+GOLDEN_ROUTER#
