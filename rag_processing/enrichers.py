@@ -19,6 +19,10 @@ class DefaultMetadataEnricher(MetadataEnricher):
             chunk.metadata.chunk_id = _new_id()
             chunk.metadata.chunk_index = idx
             chunk.metadata.total_chunks = total
+            if document.metadata.get("domain"):
+                chunk.metadata.extra["domain"] = document.metadata["domain"]
+                chunk.metadata.extra["domain_confidence"] = document.metadata.get("domain_confidence")
+                chunk.metadata.extra["domain_reason"] = document.metadata.get("domain_reason")
             chunk.chunk_id = chunk.metadata.chunk_id
             chunk.document_id = document.document_id
         return chunks

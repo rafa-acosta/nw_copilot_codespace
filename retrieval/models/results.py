@@ -84,4 +84,9 @@ class RetrievalResponse:
     top_k_results: int
     results: tuple[RetrievedChunk, ...]
     timings: RetrievalTiming
+    domain: str | None = None
+    domain_confidence: float | None = None
+    domain_reason: str | None = None
+    domain_mode: str | None = None
+    domain_filter_applied: bool = False
     debug: RetrievalDebugInfo | None = None

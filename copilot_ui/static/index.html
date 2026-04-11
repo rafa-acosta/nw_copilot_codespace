@@ -93,6 +93,15 @@
           </select>
         </label>
         <label class="field">
+          <span>Domain routing</span>
+          <select id="domain-select">
+            <option value="auto">Auto detect</option>
+            <option value="legal">Legal</option>
+            <option value="medical">Medical</option>
+            <option value="cisco">Cisco</option>
+          </select>
+        </label>
+        <label class="field">
           <span>Top-K results</span>
           <div class="range-row">
             <input id="top-k-range" type="range" min="1" max="8" value="4">
@@ -137,7 +146,7 @@
           <textarea
             id="chat-input"
             class="chat-input"
-            placeholder="Ask about a page, section, sheet, JSON path, VLAN, interface, or exact command..."
+            placeholder="Ask about a clause, diagnosis, medication, VLAN, interface, or exact command..."
             rows="1"
           ></textarea>
           <button id="send-button" class="primary-button">Send</button>

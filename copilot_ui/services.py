@@ -21,6 +21,7 @@ from copilot_ui.models import (
     UploadedFilePayload,
 )
 from copilot_ui.ollama import FIXED_OLLAMA_MODEL, OllamaClient, OllamaError
+from domain_routing import DomainRouter, SUPPORTED_DOMAINS
 from rag_processing import CleanDocument, DocumentPipeline
 from retrieval import MetadataFilterSpec, RetrievalConfig, RetrievalMode, RetrievalRequest
 from retrieval.services import build_retrieval_service, build_stored_chunks
@@ -33,6 +34,7 @@ class QueryOptions:
 
     mode: str = RetrievalMode.HYBRID.value
     top_k: int = 4
+    domain: str = "auto"
     source_types: tuple[str, ...] = ()
     debug: bool = False
 
@@ -50,6 +52,7 @@ class CopilotApplicationService:
         "cisco",
         "cisco_config",
     )
+    SUPPORTED_DOMAINS = SUPPORTED_DOMAINS
 
     def __init__(
         self,
@@ -66,6 +69,7 @@ class CopilotApplicationService:
 
         self.retrieval_config = retrieval_config or RetrievalConfig()
         self.processing_pipeline = DocumentPipeline(max_size=900, overlap=120)
+        self.domain_router = DomainRouter()
         self._lock = threading.RLock()
         self._documents: dict[str, IndexedDocument] = {}
         self._records = []
@@ -235,9 +239,18 @@ class CopilotApplicationService:
                 )
                 return self._snapshot_locked()
 
-            filters = None
-            if options.source_types:
-                filters = MetadataFilterSpec(any_of={"source_type": options.source_types})
+            manual_domain = options.domain.strip().casefold()
+            if manual_domain == "auto":
+                manual_domain = None
+            elif manual_domain:
+                self.domain_router.validate_domain(manual_domain)
+
+            route = self.domain_router.route_query(
+                message,
+                manual_domain=manual_domain,
+                available_domain_counts=self._available_domain_counts_locked(),
+            )
+            filters = self._build_filters(options=options, route_domain=route.domain, apply_domain_filter=route.filter_applied)
 
             retrieval_response = self._retrieval_service.retrieve(
                 RetrievalRequest(
@@ -246,6 +259,11 @@ class CopilotApplicationService:
                     mode=RetrievalMode(options.mode),
                     filters=filters,
                     debug=options.debug,
+                    domain=route.domain,
+                    domain_confidence=route.confidence,
+                    domain_reason=route.reason,
+                    domain_mode=route.mode,
+                    domain_filter_applied=route.filter_applied,
                 )
             )
             generated = self.answer_generator.generate(message, retrieval_response)
@@ -382,6 +400,7 @@ class CopilotApplicationService:
         active_embedding_model = embedding_model or self.embedding_model
         ingested = load_document(str(file_path))
         clean_document = CleanDocument.from_ingested(ingested)
+        clean_document.metadata["filename"] = display_name
         if existing_summary is not None:
             clean_document.document_id = existing_summary.document_id
 
@@ -402,6 +421,9 @@ class CopilotApplicationService:
                 file_path=str(file_path),
                 source_type=clean_document.source_type,
                 chunk_count=len(stored_chunks),
+                domain=clean_document.metadata.get("domain"),
+                domain_confidence=clean_document.metadata.get("domain_confidence"),
+                domain_reason=clean_document.metadata.get("domain_reason"),
             )
         else:
             summary = IndexedDocumentSummary(
@@ -410,6 +432,9 @@ class CopilotApplicationService:
                 file_path=str(file_path),
                 source_type=clean_document.source_type,
                 chunk_count=len(stored_chunks),
+                domain=clean_document.metadata.get("domain"),
+                domain_confidence=clean_document.metadata.get("domain_confidence"),
+                domain_reason=clean_document.metadata.get("domain_reason"),
                 added_at=existing_summary.added_at,
             )
         chunk_ids = tuple(record.metadata.chunk_id or "" for record in stored_chunks)
@@ -468,6 +493,32 @@ class CopilotApplicationService:
             rebuilt_documents[summary.document_id] = indexed_document
 
         return rebuilt_records, rebuilt_documents
+
+    @staticmethod
+    def _build_filters(
+        *,
+        options: QueryOptions,
+        route_domain: str | None,
+        apply_domain_filter: bool,
+    ) -> MetadataFilterSpec | None:
+        equals = {}
+        any_of = {}
+
+        if apply_domain_filter and route_domain:
+            equals["domain"] = route_domain
+        if options.source_types:
+            any_of["source_type"] = options.source_types
+
+        if not equals and not any_of:
+            return None
+        return MetadataFilterSpec(equals=equals, any_of=any_of)
+
+    def _available_domain_counts_locked(self) -> dict[str, int]:
+        counts: dict[str, int] = defaultdict(int)
+        for indexed in self._documents.values():
+            if indexed.summary.domain:
+                counts[indexed.summary.domain] += 1
+        return counts
 
     @staticmethod
     def _resolve_ollama_client(

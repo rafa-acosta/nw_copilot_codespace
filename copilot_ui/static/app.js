@@ -18,6 +18,7 @@ const uploadDropzone = document.getElementById("upload-dropzone");
 const sendButton = document.getElementById("send-button");
 const chatInput = document.getElementById("chat-input");
 const modeSelect = document.getElementById("mode-select");
+const domainSelect = document.getElementById("domain-select");
 const topKRange = document.getElementById("top-k-range");
 const topKValue = document.getElementById("top-k-value");
 const statusLine = document.getElementById("status-line");
@@ -89,8 +90,12 @@ function renderDocuments() {
   for (const document of state.documents) {
     const fragment = template.content.cloneNode(true);
     fragment.querySelector(".document-name").textContent = document.filename;
-    fragment.querySelector(".document-type").textContent = document.source_type;
+    const domainLabel = document.domain
+      ? `${document.domain} ${Math.round((Number(document.domain_confidence) || 0) * 100)}%`
+      : "unclassified";
+    fragment.querySelector(".document-type").textContent = `${document.source_type} • ${domainLabel}`;
     fragment.querySelector(".document-chunks").textContent = `${document.chunk_count} chunk(s)`;
+    fragment.querySelector(".document-item").title = document.domain_reason || "";
     fragment.querySelector(".remove-document-button").addEventListener("click", async () => {
       await mutate("/api/documents/remove", { document_id: document.document_id }, "Document removed.");
     });
@@ -130,6 +135,14 @@ function renderMessages() {
     }
     if (message.meta?.answer_model) {
       metaParts.push(message.meta.answer_model);
+    }
+    if (message.meta?.domain) {
+      const domainMode = message.meta?.domain_mode === "manual" ? "manual" : "auto";
+      const routed = `${String(message.meta.domain).toUpperCase()} ${domainMode}`;
+      metaParts.push(routed);
+    }
+    if (message.meta?.domain_filter_applied) {
+      metaParts.push("domain-filtered");
     }
     fragment.querySelector(".message-meta").textContent = metaParts.join(" • ");
 
@@ -532,6 +545,7 @@ async function sendMessage() {
     {
       message,
       mode: modeSelect.value,
+      domain: domainSelect.value,
       top_k: Number(topKRange.value),
       source_types: Array.from(activeSourceTypes),
     },

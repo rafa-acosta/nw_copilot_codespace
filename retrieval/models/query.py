@@ -52,3 +52,8 @@ class RetrievalRequest:
     filters: MetadataFilterSpec | None = None
     score_threshold: float | None = None
     debug: bool | None = None
+    domain: str | None = None
+    domain_confidence: float | None = None
+    domain_reason: str | None = None
+    domain_mode: str | None = None
+    domain_filter_applied: bool = False

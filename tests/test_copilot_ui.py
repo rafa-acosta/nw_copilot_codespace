@@ -345,6 +345,56 @@ class OllamaIntegrationTests(unittest.TestCase):
         self.assertEqual(client.messages[0]["role"], "system")
         self.assertIn("Question: What interface is up?", client.messages[1]["content"])
 
+    def test_ollama_answer_generator_applies_domain_specific_prompting(self) -> None:
+        class FakeChatClient:
+            chat_model = FIXED_OLLAMA_MODEL
+
+            def __init__(self) -> None:
+                self.messages = ()
+
+            def chat(self, messages, *, temperature: float = 0.1) -> str:
+                self.messages = tuple(messages)
+                return "Allowed VLANs are 10,20,30. [switch.cfg • interface GigabitEthernet1/0/24]"
+
+        retrieval_response = RetrievalResponse(
+            original_query="Which VLANs are allowed on interface GigabitEthernet1/0/24?",
+            normalized_query="which vlans are allowed on interface gigabitethernet1/0/24",
+            retrieval_mode="hybrid",
+            top_k_results=1,
+            results=(
+                RetrievedChunk(
+                    chunk_id="chunk_cisco_1",
+                    text="interface GigabitEthernet1/0/24\n switchport trunk allowed vlan 10,20,30",
+                    score=0.99,
+                    metadata={
+                        "filename": "switch.cfg",
+                        "cisco_feature": "interface",
+                        "cisco_section": "GigabitEthernet1/0/24",
+                        "domain": "cisco",
+                    },
+                    source_type="cisco_config",
+                ),
+            ),
+            timings=RetrievalTiming(total_ms=9.1),
+            domain="cisco",
+            domain_confidence=0.94,
+            domain_reason="cisco selected from weighted signals",
+            domain_mode="automatic",
+            domain_filter_applied=True,
+        )
+        client = FakeChatClient()
+        generator = OllamaAnswerGenerator(client=client)
+
+        answer = generator.generate(
+            "Which VLANs are allowed on interface GigabitEthernet1/0/24?",
+            retrieval_response,
+        )
+
+        self.assertEqual(answer.meta["domain"], "cisco")
+        self.assertIn("Cisco networking material", client.messages[0]["content"])
+        self.assertIn("Routed domain: cisco", client.messages[1]["content"])
+        self.assertIn("Domain filter applied: yes", client.messages[1]["content"])
+
 
 if __name__ == "__main__":
     unittest.main()

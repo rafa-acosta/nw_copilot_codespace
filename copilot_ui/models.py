@@ -47,6 +47,9 @@ class IndexedDocumentSummary:
     file_path: str
     source_type: str
     chunk_count: int
+    domain: str | None = None
+    domain_confidence: float | None = None
+    domain_reason: str | None = None
     added_at: str = field(default_factory=utcnow_iso)
 
     def to_dict(self) -> dict[str, Any]:
@@ -56,6 +59,9 @@ class IndexedDocumentSummary:
             "file_path": self.file_path,
             "source_type": self.source_type,
             "chunk_count": self.chunk_count,
+            "domain": self.domain,
+            "domain_confidence": self.domain_confidence,
+            "domain_reason": self.domain_reason,
             "added_at": self.added_at,
         }
 

@@ -51,6 +51,9 @@ class ChunkMetadata:
     json_key_path: str | None = None
     cisco_feature: str | None = None
     cisco_section: str | None = None
+    domain: str | None = None
+    domain_confidence: float | None = None
+    domain_reason: str | None = None
     tags: tuple[str, ...] = ()
     structural_path: tuple[str, ...] = ()
     custom: dict[str, JsonValue] = field(default_factory=dict)
@@ -80,6 +83,7 @@ class ChunkMetadata:
             self.json_key_path,
             self.cisco_feature,
             self.cisco_section,
+            self.domain,
         ):
             if candidate:
                 values.append(candidate)
@@ -111,6 +115,9 @@ class ChunkMetadata:
             "json_key_path": self.json_key_path,
             "cisco_feature": self.cisco_feature,
             "cisco_section": self.cisco_section,
+            "domain": self.domain,
+            "domain_confidence": self.domain_confidence,
+            "domain_reason": self.domain_reason,
             "tags": list(self.tags),
             "structural_path": list(self.structural_path),
             "custom": dict(self.custom),
@@ -150,6 +157,11 @@ class StoredChunk:
         metadata = getattr(chunk, "metadata")
         source_path = file_path or getattr(metadata, "source", None)
         structural_path = tuple(getattr(metadata, "structural_path", []) or ())
+        extra_metadata = dict(getattr(metadata, "extra", {}) or {})
+        combined_custom = {**extra_metadata, **dict(custom_metadata or {})}
+        domain = combined_custom.pop("domain", None)
+        domain_confidence = combined_custom.pop("domain_confidence", None)
+        domain_reason = combined_custom.pop("domain_reason", None)
         section = None
         if structural_path:
             source_type = getattr(metadata, "source_type", "") or ""
@@ -176,9 +188,12 @@ class StoredChunk:
                 json_key_path=getattr(metadata, "json_path", None),
                 cisco_feature=getattr(metadata, "cisco_block_type", None),
                 cisco_section=getattr(metadata, "cisco_block_name", None),
+                domain=str(domain) if domain is not None else None,
+                domain_confidence=float(domain_confidence) if domain_confidence is not None else None,
+                domain_reason=str(domain_reason) if domain_reason is not None else None,
                 tags=_as_tuple(tags),
                 structural_path=structural_path,
-                custom=dict(custom_metadata or {}),
+                custom=combined_custom,
             ),
         )
 

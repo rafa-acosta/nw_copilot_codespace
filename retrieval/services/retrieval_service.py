@@ -58,6 +58,11 @@ class RetrievalService:
         trace_steps: list[RetrievalTraceStep] = []
         debug_enabled = request.debug if request.debug is not None else self.config.observability.debug
         notes: list[str] = []
+        if request.domain:
+            notes.append(
+                f"Domain route={request.domain} mode={request.domain_mode or 'automatic'} "
+                f"confidence={request.domain_confidence or 0.0:.2f} filter_applied={request.domain_filter_applied}"
+            )
 
         with timer.measure("query_processing"):
             processed_query = self.query_processor.process(request.query)
@@ -150,6 +155,11 @@ class RetrievalService:
             top_k_results=len(results),
             results=results,
             timings=RetrievalTiming(total_ms=timer.total_ms, steps=dict(timer.steps)),
+            domain=request.domain,
+            domain_confidence=request.domain_confidence,
+            domain_reason=request.domain_reason,
+            domain_mode=request.domain_mode,
+            domain_filter_applied=request.domain_filter_applied,
             debug=debug,
         )
 

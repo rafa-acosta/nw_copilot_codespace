@@ -80,6 +80,7 @@ class CopilotRequestHandler(BaseHTTPRequestHandler):
                 options = QueryOptions(
                     mode=str(payload.get("mode", "hybrid")),
                     top_k=int(payload.get("top_k", 4)),
+                    domain=str(payload.get("domain", "auto")),
                     source_types=tuple(str(item) for item in payload.get("source_types", [])),
                     debug=bool(payload.get("debug", False)),
                 )
