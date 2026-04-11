@@ -141,6 +141,12 @@ export OLLAMA_CHAT_MODEL=llama3.1:8b
 python examples/9_launch_copilot_ui.py
 ```
 
+If you are at the repository root, you can also launch the GUI with a single command:
+
+```bash
+./run_copilot.sh
+```
+
 If you use different local models, set `OLLAMA_EMBED_MODEL` and `OLLAMA_CHAT_MODEL` before launching the GUI.
 You can also change both models from the GUI itself through the new `Ollama Models` panel. Use `Refresh`
 after pulling a new model, then apply the new chat or embedding model directly in the browser.
