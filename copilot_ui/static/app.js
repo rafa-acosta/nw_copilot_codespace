@@ -188,6 +188,7 @@ function renderMarkdownBlocks(markdown) {
   let paragraphLines = [];
   let listType = null;
   let listItems = [];
+  let listHadBlankLine = false;
   let quoteLines = [];
   let inCodeFence = false;
   let codeFenceLanguage = "";
@@ -213,6 +214,7 @@ function renderMarkdownBlocks(markdown) {
     );
     listItems = [];
     listType = null;
+    listHadBlankLine = false;
   }
 
   function flushQuote() {
@@ -253,9 +255,22 @@ function renderMarkdownBlocks(markdown) {
 
     if (!line.trim()) {
       flushParagraph();
-      flushList();
-      flushQuote();
+      if (quoteLines.length) {
+        flushQuote();
+        continue;
+      }
+      if (listItems.length) {
+        listHadBlankLine = true;
+        continue;
+      }
       continue;
+    }
+
+    const orderedMatch = line.match(/^\s*\d+\.\s+(.*)$/);
+    const unorderedMatch = line.match(/^\s*[-*+]\s+(.*)$/);
+
+    if (listHadBlankLine && !orderedMatch && !unorderedMatch) {
+      flushList();
     }
 
     if (/^\s*>\s?/.test(line)) {
@@ -285,7 +300,6 @@ function renderMarkdownBlocks(markdown) {
       continue;
     }
 
-    const orderedMatch = line.match(/^\s*\d+\.\s+(.*)$/);
     if (orderedMatch) {
       flushParagraph();
       if (listType && listType !== "ol") {
@@ -293,14 +307,15 @@ function renderMarkdownBlocks(markdown) {
       }
       listType = "ol";
       listItems.push(orderedMatch[1].trim());
+      listHadBlankLine = false;
       continue;
     }
 
-    const unorderedMatch = line.match(/^\s*[-*+]\s+(.*)$/);
     if (unorderedMatch) {
       flushParagraph();
       if (listType === "ol" && listItems.length) {
         listItems[listItems.length - 1] += `\n- ${unorderedMatch[1].trim()}`;
+        listHadBlankLine = false;
         continue;
       }
       if (listType && listType !== "ul") {
@@ -308,11 +323,13 @@ function renderMarkdownBlocks(markdown) {
       }
       listType = "ul";
       listItems.push(unorderedMatch[1].trim());
+      listHadBlankLine = false;
       continue;
     }
 
     if (listItems.length) {
       listItems[listItems.length - 1] += `\n${line.trim()}`;
+      listHadBlankLine = false;
       continue;
     }
 
