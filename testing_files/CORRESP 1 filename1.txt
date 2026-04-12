@@ -1,0 +1,310 @@
+CORRESP 1 filename1.htm
+image_0.jpg
+
+
+FOIA CONFIDENTIAL TREATMENT REQUESTED BY RAPID MICRO BIOSYSTEMS, INC.
+
+
+CERTAIN PORTIONS OF THIS LETTER AS FILED VIA EDGAR HAVE BEEN OMITTED AND FILED SEPARATELY WITH THE SECURITIES AND EXCHANGE COMMISSION. CONFIDENTIAL TREATMENT HAS BEEN REQUESTED PURSUANT TO 17 CFR 200.83 WITH RESPECT TO THE OMITTED PORTIONS. OMITTED INFORMATION HAS BEEN REPLACED IN THIS LETTER AS FILED VIA EDGAR WITH A PLACEHOLDER IDENTIFIED BY THE MARK “[****].”
+ 
+
+
+May 12, 2023
+
+VIA EDGAR
+
+Division of Corporation Finance
+Office of Industrial Applications and Services
+U.S. Securities and Exchange Commission
+100 F Street, N.E.
+Washington, D.C. 20549
+
+Attention: Michael Fay
+Brian Cascio
+
+Re:         Rapid Micro Biosystems, Inc.
+Form 10-K for the fiscal year ended December 31, 2022
+Filed March 10, 2023
+File No. 001-40592
+Dear Mr. Fay and Mr. Cascio:
+Rapid Micro Biosystems, Inc. (the “Company”) respectfully submits this letter in response to the comment letter dated April 10, 2023 of the staff of the Division of Corporation Finance (the “Staff”) of the Securities and Exchange Commission relating to the Company’s above-referenced Annual Report on Form 10-K for the fiscal year ended December 31, 2022, filed March 10, 2023 (the “2022 Form 10-K”). For your convenience, we have reproduced the Staff’s comment in italics below, followed by the Company’s response.
+Form 10-K for the fiscal year ended December 31, 2022
+
+Item 7. Management’s Discussion and Analysis of Financial Condition and Results of Operations Key business metrics, page 64
+
+1. On page 65 you set forth that validation of a system takes anywhere from three to nine months and on page 70 you reference the impact to validation from coronavirus. Based on the table, it appears that a number of systems placed in 2021 were not validated as of December 31, 2022. As it relates to these 2021 systems, please describe for us in further detail:
+• the reasons for any systems that were placed in 2021 and not validated as of December 31, 2022;
+• the date revenue was recognized and the date the system was ultimately validated, for each of these 2021 systems;
+• how the Growth Direct system is fully functional for use by the customer upon delivery without validation services, as set forth on page 66;
+• whether these 2021 systems outlined in the table were in actual use prior to being validated;
+• how you considered the guidance in ASC 606-10-25-21(c) in the accounting for your systems; and
+• the significant terms of your 2021 arrangements. Provide us a copy of your actual 2021 contractual arrangement.
+
+Response: The Company considers a Growth Direct system to be “placed” upon transfer of control of the system from the Company to the customer, at which point the revenue for that system is recognized. For purposes of this letter, “place”, “placed”, or “placement” shall all have the same meaning: transfer of control of the system to a customer. Once a Growth Direct system has been placed, the separate performance obligations of system installation and system validation will follow in cases when customers purchase those services separately from the Company. The Company generally expects system installation to take a few weeks and system validation to be completed between three and nine months following commencement of related activities.
+
+1001 Pawtucket Blvd. West | Lowell, MA 01854 | ph: 978-349-3200 | fx: 978-349-2065
+www.rapidmicrobio.com
+
+
+Following placement of a system with a customer, the timing and duration of installation is dependent on customer site readiness and accessibility as well as customer staff availability to support the installation process. In the event a customer site is not ready (due to factors such as site construction) or accessible (due to factors such as limitations relating to the coronavirus pandemic), or necessary customer specialized staff are not available (due to factors such as competing priorities or turnover), the time between system placement and installation can be extended. Similarly, once a system has been installed, the time between completion of installation and start of validation as well as the duration of the validation process are dependent upon several factors including, but not limited to, the examples outlined in the preceding sentence as well as whether a specific customer has previously completed the validation process using a Growth Direct system (in which case several validation steps may be omitted, reducing the direct hours required to complete the validation process). These factors are largely outside of the Company’s control and, in some cases, result in installation and validation timeframes that are longer or shorter than the general timeframes disclosed on page 65 of the 2022 Form 10-K.
+
+Revenue was recognized for all 2021 system placements during the year ended December 31, 2021, as control of each system was transferred to the customer at a point in time during that period. Once transfer of control of each Growth Direct system had taken place, the amount of time between and for each separate performance obligation was subject to variability due to the factors outlined in the preceding paragraph. A complete summary of 2021 system placements, including the dates each individual system was placed, installed and validated, as well as supporting details for systems placed in 2021 that were not validated as of December 31, 2022, are included as Exhibit A to this letter which is subject to a confidential treatment request pursuant to Rule 83 of the Commission’s Rules on Information and Requests, 17 C.F.R. §200.83. The revenue attributed to each system placed in 2021 was recognized on the date of placement.
+
+Each Growth Direct system undergoes quality control release testing prior to shipment and is fully functional for use by the customer upon delivery as the system can, at the customer’s election, be both installed and validated by the customer or a qualified third party other than the Company. Both installation and validation activities have been completed by other parties (either customers themselves or a third-party service organization) in the past. With respect to installation, detailed instructions are provided with each Growth Direct system when it is delivered which can be leveraged by the customer or a third-party service provider to install the system. With respect to validations, the Company has a standardized validation process that was historically developed with a group of industry-leading pharmaceutical companies and can be leveraged by customers or a third-party service provider to complete the validation of the Growth Direct system. This process allows the customer to demonstrate and document the accuracy, speed, and reliability of detecting microcolonies using the Growth Direct system’s automated image analysis compared to conventional manual methods and supports the use of the Growth Direct system in regulated environments.
+
+While validation services are not required for the system to be fully functional to the customer, we believe that they add value when purchased as they provide the customer with documentation supporting the performance of their Growth Direct system, including as compared to their existing manual method of microbial quality control (MQC), which can be used to support compliance with regulatory requirements and operation under Good Manufacturing Practices (GMP). Therefore, and considering the provisions of ASC 606-10-25-21(c), the Growth Direct system placement and related validation services are not significantly affected by each other or interdependent, and we are able to fulfill our performance obligations with respect to each of the Growth Direct system placement, the installation services and the validation services independently.
+
+Once a system is placed, the customer has the ability to direct the use of the asset as the customer can obtain installation, validation and other services from the Company or from a third party at the customer's sole discretion. As such, the customer can begin using the system together with other resources that are readily available (from third parties or the Company). Whether the system is in actual use is outside of the Company’s control.
+
+The Company has standard terms and conditions that are provided to all of its customers. Please refer to Exhibit B and Exhibit C to this letter for the Company’s 2021 Terms and Conditions of Sale and the Company's 2021 Terms and Conditions of Service, respectively. In addition to the Company's Terms and Conditions of Sale, any specific terms agreed to within our sales quotes, customer purchase orders, sales order acknowledgements, and, in less frequent situations, customer-specific master sales agreements, are combined together constituting the Company's contract with a customer. The Company believes the significant terms of its 2021 contractual arrangements that impact control transfer and thus drive revenue recognition include the following: (1) shipping / delivery terms, (2) cancellation terms, (3) payment and invoicing terms, (4) refund rights, and (5) customer acceptance provisions. Our standard contractual terms with customers require payment for all products and services, including the Growth Direct system and validation services (when purchased), upon shipment of the system and do not include refund or cancellation rights, or substantive customer acceptance provisions.
+
+Item 15. Exhibits 31.1 and 31.2, page 80
+
+2. We note that your certifications filed as Exhibits 31.1 and 31.2 do not include paragraph 4(b) and the introductory language in paragraph 4 referring to internal control over financial reporting. Please file an amendment to your annual report that includes certifications that conform exactly to the language set forth within the Exchange Act Rule 13a-14(a). Please note that
+
+
+
+you may file an abbreviated amendment that consists of a cover page, explanatory note, signature page, and paragraphs 1, 2, 4, and 5 of the certification.
+
+Response: Concurrently with the filing of this letter, the Company filed an abbreviated amendment to the 2022 Form 10-K with replacement Exhibits 31.1 and 31.2 that include only paragraphs 1, 2, 4 and 5 to address the Staff’s comment. The form of Exhibits 31.1 and 31.2 are attached hereto as Exhibit D and Exhibit E, respectively.
+
+
+Consolidated Financial Statements
+Revenue Recognition, page F-14
+
+3. We note your contracts may include multiple performance obligations. Please revise your revenue recognition disclosure in future filings so that users can understand any impact between recurring and non-recurring revenues from your allocation of the transaction price. In this regard, please disclose the qualitative and quantitative information about the significant judgments, and changes in judgments, that significantly affect the determination of the amount and timing of revenue, as set forth in ASC 606-10-50-1(b) and 606-10-50-17(b). Please provide us any proposed disclosure.
+
+Response: The Company’s recurring revenue stream includes sales of proprietary consumables and service contracts. We consider these to be recurring revenues because customers typically place purchase orders for these items on a periodic basis as they use their Growth Direct system over time. The Company’s non-recurring revenue stream includes sales of systems, LIMS connection software, validation services, and field services (excluding service contracts). We consider these to be non-recurring revenues because customers typically place a single purchase order for a bundle of these products and services on a one-time or infrequent basis.
+
+Our recurring revenues arise from contracts typically negotiated separately from the initial sale of a Growth Direct system and represent the entitled consideration for delivering proprietary consumables and providing system maintenance services. Once validation of a sold Growth Direct system has been completed, we expect our customers to transition from their legacy manual method of microbial detection to an automated method using the Growth Direct system and to begin regular utilization of consumables. Recurring maintenance service contracts commence after our standard one-year warranty period lapses. Our consumables contracts and our service contracts typically have a single performance obligation. For our consumables contracts, that performance obligation is the delivery of our proprietary consumables recognized at a point-in-time once control is transferred (typically in line with shipping and delivery terms). For our service contracts, that performance obligation is our stand-ready obligation to the customer to provide service and maintenance visits and is recognized ratably over time based on the start and end dates of the service contract. Significant judgment for recurring revenue contracts is typically not required due to their non-complex nature and the fact that the transaction price is typically allocated entirely to the single performance obligation associated with them.
+
+Our non-recurring revenues typically arise from standalone contracts with multiple performance obligations that usually include a Growth Direct system, installation services, validation services, and LIMS connection software. Significant judgment is applied in identifying the distinct performance obligations within the arrangement, determination of the transaction price, transaction price allocation, and determination of the standalone selling price for each of the distinct performance obligations. Occasionally, consumables and/or service contracts will be negotiated as part of a larger transaction with multiple performance obligations, but this is infrequent, and the overall consideration allocated to these recurring performance obligations is immaterial to the financial statements taken as a whole.
+
+See Exhibit F for proposed revisions to the revenue disclosure.
+
+4. We note payment terms for customer orders are typically between 30 to 90 days after the shipment or delivery of the product. Please clarify for us and in future filings whether these are the payments terms for all performance elements in a multiple element arrangement. Refer to ASC 606-10-50-12(b).
+
+Response: Our standard terms and conditions allow us to invoice for all products and services within an arrangement upon shipment of the Growth Direct system. Regardless of whether there is a single performance obligation or multiple performance obligations, our payment terms are typically between 30 to 90 days after the shipment or delivery of the system or product, as the case may be.
+
+See Exhibit F for proposed revisions to the revenue disclosure.
+
+
+5. Please clarify for us and in future filings whether your consideration is variable as set forth in ASC 606-10-32-5 through 32-9 and whether your estimate of variable consideration is typically constrained in accordance with paragraphs ASC 606-10-32-11 through 32-13. Refer to ASC 606-10-50-12(b) for the required disclosure.
+
+
+
+
+Response: Our standard contracts (for both recurring and non-recurring revenue streams) do not include variable consideration or rights of return for any products or services sold within an arrangement. Any discounts provided are ordinary and fixed, and allocated across all performance obligations based on relative fair value. Payment for products and services are typically due within 30 to 90 days from product shipment or delivery for all products and services purchased within an arrangement and there are no significant financing components. We will update our policy in future filings to clarify that consideration is typically fixed and not variable.
+
+See Exhibit F for proposed revisions to the revenue disclosure.
+
+* * * * *
+
+Due to the commercially sensitive nature of information contained in Exhibit A to this letter, this submission is accompanied by the Company’s request for confidential treatment of Exhibit A. The Company has filed a separate letter with the Office of Freedom of Information and Privacy Act Operations in connection with the confidential treatment request, pursuant to Rule 83 of the Commission’s Rules on Information and Requests, 17 C.F.R. §200.83. For the Staff’s reference, we have enclosed a copy of the Company’s letter to the Office of Freedom of Information and Privacy Act Operations as well as a copy of this correspondence, marked to show the portions redacted from the version filed via EDGAR and for which the Company is requesting confidential treatment.
+
+If you or any other member of the Staff have any questions with regard to the foregoing responses, would like to discuss any of the matters covered in this letter, or otherwise require additional information, please contact me at (978) 349-3692 or via e-mail at SWirtjes@rapidmicrobio.com.
+
+
+
+Sincerely,
+/s/ Sean Wirtjes
+Sean Wirtjes
+Chief Financial Officer
+Rapid Micro Biosystems, Inc.
+
+
+cc:    Robert Spignesi, President and Chief Executive Officer, Rapid Micro Biosystems, Inc.
+Jonathan Paris, General Counsel and Senior Vice President, Rapid Micro Biosystems, Inc.
+Edwin O’Connor, Goodwin Procter LLP
+
+FOIA CONFIDENTIAL TREATMENT REQUESTED BY RAPID MICRO BIOSYSTEMS, INC.
+
+
+
+Exhibit A
+[***]
+RPID0000001
+
+
+
+Exhibit B
+RAPID MICRO BIOSYSTEMS, INC.
+TERMS AND CONDITIONS OF SALE
+
+
+
+exhibitb_rpidformtermsandc.jpg
+
+
+
+exhibitb_rpidformtermsandca.jpg
+
+
+
+exhibitb_rpidformtermsandcb.jpg
+
+
+
+
+Exhibit C
+GROWTH DIRECT™ SYSTEM SERVICE AGREEMENT
+
+
+
+exhibitc_rapidmicroservicea.jpg
+
+
+
+exhibitc_rapidmicroserviced.jpg
+
+
+
+exhibitc_rapidmicroserviceb.jpg
+
+
+
+exhibitc_rapidmicroservicec.jpg
+
+
+
+exhibitc_rapidmicroservice.jpg
+
+
+
+exhibitc_rapidmicroservicee.jpg
+
+
+
+Exhibit D
+CERTIFICATION OF PRINCIPAL EXECUTIVE OFFICER
+PURSUANT TO RULES 13a-14(a) OR 15d-14(a) UNDER THE SECURITIES EXCHANGE ACT OF 1934, AS ADOPTED PURSUANT TO SECTION 302 OF THE SARBANES-OXLEY ACT OF 2002
+I, Robert Spignesi, certify that:
+1.    I have reviewed this Annual Report on Form 10-K of Rapid Micro Biosystems, Inc.;
+2.    Based on my knowledge, this report does not contain any untrue statement of a material fact or omit to state a material fact necessary to make the statements made, in light of the circumstances under which such statements were made, not misleading with respect to the period covered by this report;
+3.    [Intentionally omitted];
+4.    The registrant’s other certifying officer and I are responsible for establishing and maintaining disclosure controls and procedures (as defined in Exchange Act Rules 13a-15(e) and 15d-15(e)) and internal control over financial reporting (as defined in Exchange Act Rules 13a-15(f) and 15d-15(f)) for the registrant and have:
+(a)    Designed such disclosure controls and procedures, or caused such disclosure controls and procedures to be designed under our supervision, to ensure that material information relating to the registrant, including its consolidated subsidiaries, is made known to us by others within those entities, particularly during the period in which this report is being prepared;
+(b)    Designed such internal control over financial reporting, or caused such internal control over financial reporting to be designed under our supervision, to provide reasonable assurance regarding the reliability of financial reporting and the preparation of financial statements for external purposes in accordance with generally accepted accounting principles;
+(c)    Evaluated the effectiveness of the registrant’s disclosure controls and procedures and presented in this report our conclusions about the effectiveness of the disclosure controls and procedures, as of the end of the period covered by this report based on such evaluation; and
+(d)    Disclosed in this report any change in the registrant’s internal control over financial reporting that occurred during the registrant’s most recent fiscal quarter (the registrant’s fourth fiscal quarter in the case of an annual report) that has materially affected, or is reasonably likely to materially affect, the registrant’s internal control over financial reporting; and
+5.    The registrant’s other certifying officer and I have disclosed, based on our most recent evaluation of internal control over financial reporting, to the registrant’s auditors and the audit committee of the registrant’s board of directors (or persons performing the equivalent functions):
+(a)    All significant deficiencies and material weaknesses in the design or operation of internal control over financial reporting which are reasonably likely to adversely affect the registrant’s ability to record, process, summarize and report financial information; and
+(b)    Any fraud, whether or not material, that involves management or other employees who have a significant role in the registrant’s internal control over financial reporting.
+Date: May 12, 2023
+
+By:
+/s/ Robert Spignesi
+
+Name:
+Robert Spignesi
+
+Title:
+Chief Executive Officer
+(principal executive officer)
+ 
+
+
+
+Exhibit E
+CERTIFICATION OF PRINCIPAL FINANCIAL OFFICER
+PURSUANT TO RULES 13a-14(a) OR 15d-14(a) UNDER THE SECURITIES EXCHANGE ACT OF 1934, AS ADOPTED PURSUANT TO SECTION 302 OF THE SARBANES-OXLEY ACT OF 2002
+I, Sean Wirtjes, certify that:
+1.    I have reviewed this Annual Report on Form 10-K of Rapid Micro Biosystems, Inc.;
+2.    Based on my knowledge, this report does not contain any untrue statement of a material fact or omit to state a material fact necessary to make the statements made, in light of the circumstances under which such statements were made, not misleading with respect to the period covered by this report;
+3.    [Intentionally omitted];
+4.    The registrant’s other certifying officer and I are responsible for establishing and maintaining disclosure controls and procedures (as defined in Exchange Act Rules 13a-15(e) and 15d-15(e)) and internal control over financial reporting (as defined in Exchange Act Rules 13a-15(f) and 15d-15(f)) for the registrant and have:
+(a)    Designed such disclosure controls and procedures, or caused such disclosure controls and procedures to be designed under our supervision, to ensure that material information relating to the registrant, including its consolidated subsidiaries, is made known to us by others within those entities, particularly during the period in which this report is being prepared;
+(b)    Designed such internal control over financial reporting, or caused such internal control over financial reporting to be designed under our supervision, to provide reasonable assurance regarding the reliability of financial reporting and the preparation of financial statements for external purposes in accordance with generally accepted accounting principles;
+(c)    Evaluated the effectiveness of the registrant’s disclosure controls and procedures and presented in this report our conclusions about the effectiveness of the disclosure controls and procedures, as of the end of the period covered by this report based on such evaluation; and
+(d)    Disclosed in this report any change in the registrant’s internal control over financial reporting that occurred during the registrant’s most recent fiscal quarter (the registrant’s fourth fiscal quarter in the case of an annual report) that has materially affected, or is reasonably likely to materially affect, the registrant’s internal control over financial reporting; and
+5.    The registrant’s other certifying officer and I have disclosed, based on our most recent evaluation of internal control over financial reporting, to the registrant’s auditors and the audit committee of the registrant’s board of directors (or persons performing the equivalent functions):
+(a)    All significant deficiencies and material weaknesses in the design or operation of internal control over financial reporting which are reasonably likely to adversely affect the registrant’s ability to record, process, summarize and report financial information; and
+(b)    Any fraud, whether or not material, that involves management or other employees who have a significant role in the registrant’s internal control over financial reporting.
+Date: May 12, 2023
+
+By:
+/s/ Sean Wirtjes
+
+Name:
+Sean Wirtjes
+
+Title:
+Chief Financial Officer
+(principal financial officer and principal accounting officer)
+ 
+
+
+
+
+Exhibit F
+
+The following text reflects the revenue recognition disclosures included in our financial statements filed as part of our Annual Report on 2022 Form 10-K as well as marked changes that we propose making in our future Annual Report on Form 10-K filings in response to the Commission’s comments. We will also make applicable changes to the quarterly revenue recognition disclosures in our future Quarterly Report on Form 10-Q filings. Such changes have already been reflected, as appropriate, in our Quarterly Report on Form 10-Q for the three months ended March 31, 2023, as filed on May 9, 2023.
+
+Revenue recognition
+
+Under ASC 606, revenueRevenue is recognized when or as a customer obtains control of promised goods or services, in an amount that reflects the consideration which the entity expects to receivebe entitled in exchange for those goods or services. In order to achieve this core principle, the Company applies the following five steps when recording revenue:
+
+(1) identify the contract, or contracts, with the customer, (2) identify the performance obligations in the contract, (3) determine the transaction price, (4) allocate the transaction price to the performance obligations in the contract and (5) recognize revenue when, or as, performance obligations are satisfied.
+
+The Company derives revenue from the sale of its products and services through direct sales representatives and distributors. The Company’s arrangements are generally noncancelable and nonrefundable after ownership passes to the customer or distributor.
+
+Revenue is measured as the amount of consideration the Company expects to be entitled in exchange for transferring products to a customer (transaction price). To the extent that the transaction price includes variable consideration, the Company estimates the amount of variable consideration that should be included in the transaction price utilizing the most likely amount method. Variable consideration is included in the transaction price if, in the Company’s judgment, it is probable that a significant future reversal of cumulative revenue under the contract will not occur. Estimates of variable consideration and determination of whether to include estimated amounts in the transaction price are based largely on an assessment of the Company’s anticipated performance and all information (historical, current and forecasted) that is reasonably available. However, most arrangements have a fixed transaction price with no variable consideration apart from discounts.
+
+
+Product revenue
+
+The Company derives product revenue primarily from the sale of its systems, optional LIMS connection software, which facilitates the transfer of data captured by the system to the customer’s existing LIMS software, and proprietary consumables. Revenue is recognized when control of the products is transferred to the customer.
+
+Transfer of control is generally at shipment or delivery, depending on contractual terms, and occurs when title and risk of loss transfers to the customer, which represents the point in time when the customer obtains the use of and substantially all of the benefits of the product. Upon delivery, the System is fully functional for use by the customer. As such, the Company’s performance obligation related to product sales is satisfied at a point in time. The Company’s principal terms of sale are free carrier shipping point.
+
+Service revenue
+
+The Company derives service revenue primarily from validation services, service contracts and field serviceservices (including installation). The Company’s validation services include validation and documentation services performed utilizing systems purchased by the customer. Service contracts are around-the-clock maintenance
+
+
+support which can be purchased by the customer after the expiration of the one-year assurance warranty included with each system purchase. Field service revenueservices primarily consists of services provided by field service engineers to install the system at the customer site and perform two preventative maintenance services during the warranty period. Service revenue is recognized over time using an input method based on time lapsed for service contracts and output method based on milestone achieved for validation services and field serviceservices.
+
+Performance obligations
+
+A performance obligation is a promise in a contract to transfer a distinct product or service to a customer that are both capable of being distinct, whereby the customer can benefit from the product or service either on its own or together with other resources that are readily available, and are distinct in the context of the contract, whereby the transfer of the product or service is separately identifiable from other promises in the contract. The Company’s main performance obligations in customer arrangements are systems, LIMS connection software, consumables, validation services, service contracts, and field serviceservices.
+
+
+Payment terms
+
+Payment terms for customer orders are typically between 30 to 90 days after the shipment or delivery of the product and apply to all performance obligations within an arrangement. For certain products, services and customer types, the Company requires payment before the products or services are delivered to, or performed for, the customer. None of the Company’s contracts contain a significant financing component.
+
+Multiple performance obligations with an arrangement
+
+The Company’s contracts may include multiple performance obligations when customers purchase a combination of products and services such as system sold together with the LIMS connection software, consumables or services. For these arrangements, the Company allocates the contract’s transaction price to each performance obligation on a relative standalone selling price basis using the Company’s best estimate of the standalone selling price of each distinct product or service in the contract. The primary methods used to estimate. The standalone selling prices used in the allocation are based on the prices observed in standalone sales to customers or cost-plus margin depending on the nature of the obligation and available evidence of fair value. Allocation of the transaction price is determined at contract’s inception.
+
+Remaining performance obligations
+
+The Company does not disclose the value of remaining performance obligations for (i) contracts with an original contract term of one year or less, (ii) contracts for which the Company recognizes revenue at the amount to which it has the right to invoice when that amount corresponds directly with the value of services performed, and (iii) variable consideration allocated entirely to a wholly unsatisfied performance obligation or to a wholly unsatisfied distinct service that forms part of a single performance obligation. The Company does not have material remaining performance obligations associated with contracts with terms greater than one year.
+
+Contract balances from contracts with customers
+
+Contract assets arise from unbilled amounts in customer arrangements when revenue recognized exceeds the amount billed to the customer and the Company’s right to payment is conditional and not only subject to the passage of time. The Company had $0.1 million and $0.3 million in contract assets as of December 31, 2022 and 2021, respectively, included in prepaid expenses and other current assets. These balances relate to unbilled amounts with commercial customers as well as an amount in the prior year related to the BARDA agreement.
+
+Contract liabilities represent the Company’s obligation to transfer goods or services to a customer for which it has received consideration (or the amount is due) from the customer. The Company has a contract liability related to service revenue, which consists of amounts that have been invoiced but that have not been recognized as revenue. Amounts expected to be recognized as revenue within 12 months of the balance sheet date are classified as current
+
+
+deferred revenue and amounts expected to be recognized as revenue beyond 12 months of the balance sheet date are classified as noncurrent deferred revenue. The Company did not record any non-current deferred revenue as of December 31, 2022 or 2021. Deferred revenue was $4.7 million and $3.3 million at December 31, 2022 and 2021, respectively. Revenue recognized during the year ended December 31, 2022 that was included in deferred revenue at the prior year-end was $2.7 million. Revenue recognized during the year ended December 31, 2021 that was included in deferred revenue at the prior year-end was $3.8 million.
+
+Non-commercial revenue
+
+The Company has historically generated revenue from a long-term contract with the U.S. Department of Health and Human Services Biomedical Advanced Research and Development Authority (“BARDA”) a part of the U.S. government. The Company’s contracts with the U.S. government are typically subject to the Federal Acquisition Regulation (“FAR”) and are priced based on estimated or actual costs of producing goods or providing services. The FAR provides guidance on the types of costs that are allowable in establishing prices for goods or services provided under U.S. government contracts. In September 2017, the Company signed a contract with BARDA, which was subsequently modified on multiple occasions to increase the contract value and adjust the cost share reimbursement rate. Modifications were accounted for in accordance with the contract modification framework. The contract is a cost-reimbursable, cost-sharing arrangement, whereby BARDA reimburses the Company for a percentage of the total costs that have been incurred including indirect allowable costs. All funding under this contract was fully earned by the fourth quarter of 2021. However, the Company is now in the process of closing out its BARDA contract, which includes a true-up of actual reimbursable costs to those previously billed at provisional rates for each year of performance. Any true-up will be recognized as non-commercial revenue once finalized.
+
+Disaggregated revenue
+
+The Company disaggregates revenue based on the recurring and non-recurring, and commercial and non-commercial, nature of the underlying sale. Recurring revenue includes sales of consumables and service contracts. The Company considers these to be recurring revenues because customers typically place purchase orders on a periodic basis as they use their Growth Direct system over time. These arrangements typically contain a single performance obligation and thus the entire consideration to which the Company is entitled is allocated entirely to that performance obligation. Non-recurring revenue includes sales of systems, LIMS connection software, validation services, field serviceservices, and revenue under the Company’s contract with BARDA. , and typically contains multiple performance obligations. The Company considers these to be non-recurring revenues because customers typically place single purchase orders for a bundle of products and services on a one-time or infrequent basis. For these arrangements, significant judgment is applied in identifying the distinct performance obligations, determination of the transaction price, transaction price allocation, and determination of standalone selling price for each of the distinct performance obligations.
+
+
+The following table presents the Company’s revenue by the recurring or non-recurring and commercial or non-commercial nature of the revenue stream (in thousands):
+
+[Tables intentionally omitted]
+
+
+
+
+
+
