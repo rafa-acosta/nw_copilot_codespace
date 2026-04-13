@@ -339,14 +339,19 @@ select,
 
 .empty-state {
   display: flex;
-  align-items: center;
+  align-items: end;
   justify-content: center;
+  padding: 12px 0 8px;
 }
 
 .empty-card {
-  max-width: 720px;
-  padding: 28px;
+  max-width: 560px;
+  padding: 22px 24px;
   text-align: center;
+}
+
+.empty-card h3 {
+  font-size: 1.28rem;
 }
 
 .chat-scroll {
@@ -533,15 +538,57 @@ select,
 
 .composer-shell {
   display: grid;
-  gap: 8px;
+  gap: 10px;
+}
+
+.composer-intro {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  text-align: center;
+}
+
+.composer-intro p {
+  margin: 0;
+  max-width: 640px;
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+.composer-kicker {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(23, 107, 90, 0.16), rgba(13, 93, 95, 0.08));
+  color: var(--accent-strong);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .composer-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(23, 107, 90, 0.18);
+  box-shadow:
+    0 24px 48px rgba(26, 47, 58, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.28);
   padding: 10px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: end;
+  transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.composer-card:focus-within {
+  border-color: rgba(23, 107, 90, 0.38);
+  box-shadow:
+    0 28px 62px rgba(26, 47, 58, 0.16),
+    0 0 0 6px rgba(23, 107, 90, 0.10);
+  transform: translateY(-1px);
 }
 
 .chat-input {
@@ -551,6 +598,10 @@ select,
   border: none;
   background: transparent;
   padding: 8px 10px;
+}
+
+.chat-input::placeholder {
+  color: rgba(21, 54, 58, 0.52);
 }
 
 .chat-input:focus,
@@ -566,6 +617,10 @@ select:focus,
 
 .status-line.error {
   color: #a03d32;
+}
+
+.composer-shell.has-conversation .composer-intro {
+  display: none;
 }
 
 @media (max-width: 1100px) {
@@ -590,8 +645,19 @@ select:focus,
     padding: 14px;
   }
 
+  .empty-state {
+    align-items: center;
+    padding-top: 0;
+  }
+
   .sidebar {
     padding: 14px;
+  }
+
+  .composer-intro {
+    justify-items: start;
+    text-align: left;
+    padding: 0 2px;
   }
 
   .composer-card {

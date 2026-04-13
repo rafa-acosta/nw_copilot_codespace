@@ -13,6 +13,7 @@ const documentList = document.getElementById("document-list");
 const messageList = document.getElementById("message-list");
 const emptyState = document.getElementById("empty-state");
 const chatScroll = document.getElementById("chat-scroll");
+const composerShell = document.querySelector(".composer-shell");
 const fileInput = document.getElementById("file-input");
 const uploadDropzone = document.getElementById("upload-dropzone");
 const sendButton = document.getElementById("send-button");
@@ -109,6 +110,7 @@ function renderMessages() {
   const citationTemplate = document.getElementById("citation-template");
 
   emptyState.style.display = state.messages.length ? "none" : "flex";
+  composerShell.classList.toggle("has-conversation", state.messages.length > 0);
 
   for (const message of state.messages) {
     const fragment = template.content.cloneNode(true);
