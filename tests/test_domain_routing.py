@@ -74,6 +74,22 @@ class DomainClassifierTests(unittest.TestCase):
         self.assertGreater(result.confidence, 0.60)
         self.assertIn("interface", result.reason.casefold())
 
+    def test_classifies_general_document_when_specialist_signals_are_absent(self) -> None:
+        result = self.classifier.classify_document(
+            source_type="text",
+            file_path="/tmp/project_update.txt",
+            content=(
+                "Project Update\n"
+                "The team finished the migration checklist and shared next week's milestones.\n"
+                "Outstanding work includes onboarding notes, budget tracking, and meeting follow-ups.\n"
+            ),
+            metadata={"filename": "project_update.txt"},
+        )
+
+        self.assertEqual(result.domain, "general")
+        self.assertGreaterEqual(result.confidence, 0.55)
+        self.assertIn("general", result.reason.casefold())
+
 
 class DomainPipelinePropagationTests(unittest.TestCase):
     def test_pipeline_propagates_domain_metadata_to_chunks(self) -> None:
@@ -135,6 +151,14 @@ class DomainRoutingIntegrationTests(unittest.TestCase):
                         " spanning-tree portfast trunk\n"
                     ),
                 ),
+                encode_payload(
+                    "project_update.txt",
+                    (
+                        "Project Update\n"
+                        "The migration checklist is complete.\n"
+                        "Next we will review rollout timing, training notes, and open action items.\n"
+                    ),
+                ),
             ]
         )
 
@@ -166,6 +190,32 @@ class DomainRoutingIntegrationTests(unittest.TestCase):
         self.assertTrue(assistant_message.meta["domain_filter_applied"])
         self.assertTrue(assistant_message.citations)
         self.assertTrue(all(citation.metadata["domain"] == "cisco" for citation in assistant_message.citations))
+
+    def test_auto_routing_detects_general_query(self) -> None:
+        snapshot = self.service.ask(
+            "What does the project update say about the next steps?",
+            QueryOptions(mode="hybrid", top_k=2, domain="auto"),
+        )
+
+        assistant_message = snapshot.messages[-1]
+        self.assertEqual(assistant_message.meta["domain"], "general")
+        self.assertEqual(assistant_message.meta["domain_mode"], "automatic")
+        self.assertTrue(assistant_message.meta["domain_filter_applied"])
+        self.assertTrue(assistant_message.citations)
+        self.assertTrue(all(citation.metadata["domain"] == "general" for citation in assistant_message.citations))
+
+    def test_manual_override_supports_general_domain(self) -> None:
+        snapshot = self.service.ask(
+            "Summarize the project update.",
+            QueryOptions(mode="hybrid", top_k=2, domain="general"),
+        )
+
+        assistant_message = snapshot.messages[-1]
+        self.assertEqual(assistant_message.meta["domain"], "general")
+        self.assertEqual(assistant_message.meta["domain_mode"], "manual")
+        self.assertTrue(assistant_message.meta["domain_filter_applied"])
+        self.assertTrue(assistant_message.citations)
+        self.assertTrue(all(citation.metadata["domain"] == "general" for citation in assistant_message.citations))
 
 
 if __name__ == "__main__":

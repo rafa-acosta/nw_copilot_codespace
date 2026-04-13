@@ -10,6 +10,11 @@ from typing import Iterable, Mapping
 from .models import DomainDetectionResult, SUPPORTED_DOMAINS
 
 
+GENERAL_DOMAIN = "general"
+GENERAL_BASE_SCORE = 1.0
+SPECIALIST_BASE_SCORE = 0.25
+
+
 def _normalize_token(value: str) -> str:
     return re.sub(r"\s+", " ", value.strip().casefold())
 
@@ -299,7 +304,11 @@ class DomainClassifier:
         metadata_blob = self._stringify_metadata(metadata)
         preview = content[:20000]
 
-        scores = {domain: 0.25 for domain in SUPPORTED_DOMAINS}
+        base_scores = {
+            domain: (GENERAL_BASE_SCORE if domain == GENERAL_DOMAIN else SPECIALIST_BASE_SCORE)
+            for domain in SUPPORTED_DOMAINS
+        }
+        scores = dict(base_scores)
         reasons: dict[str, list[tuple[float, str]]] = {domain: [] for domain in SUPPORTED_DOMAINS}
 
         for domain, prior in SOURCE_TYPE_PRIORS.get(normalized_source_type, {}).items():
@@ -344,10 +353,11 @@ class DomainClassifier:
                 scores[domain] += weight
                 reasons[domain].append((weight, f"{classification_target} formatting cues"))
 
-        selected_domain = max(scores, key=scores.get)
-        total_score = sum(scores.values()) or 1.0
-        confidence = scores[selected_domain] / total_score
-        reason = self._build_reason(selected_domain, reasons[selected_domain], scores[selected_domain], total_score)
+        selected_domain, confidence, reason = self._select_domain(
+            scores=scores,
+            base_scores=base_scores,
+            reasons=reasons,
+        )
 
         return DomainDetectionResult(
             domain=selected_domain,
@@ -393,3 +403,102 @@ class DomainClassifier:
         ranked = sorted(reasons, key=lambda item: item[0], reverse=True)
         detail = "; ".join(text for _, text in ranked[:3])
         return f"{domain} selected from weighted signals ({detail}); score={winning_score:.2f}/{total_score:.2f}"
+
+    def _select_domain(
+        self,
+        *,
+        scores: Mapping[str, float],
+        base_scores: Mapping[str, float],
+        reasons: Mapping[str, list[tuple[float, str]]],
+    ) -> tuple[str, float, str]:
+        total_score = sum(scores.values()) or 1.0
+        specialist_domains = tuple(DOMAIN_PROFILES)
+        top_specialist = max(specialist_domains, key=scores.get)
+        runner_up_specialist = max(
+            (domain for domain in specialist_domains if domain != top_specialist),
+            key=scores.get,
+            default=top_specialist,
+        )
+        top_specialist_signal = scores[top_specialist] - base_scores[top_specialist]
+        runner_up_signal = scores[runner_up_specialist] - base_scores[runner_up_specialist]
+        specialist_margin = top_specialist_signal - runner_up_signal
+        top_specialist_evidence = sum(
+            1 for _, reason_text in reasons[top_specialist] if not reason_text.startswith("source type ")
+        )
+
+        if scores[GENERAL_DOMAIN] >= scores[top_specialist]:
+            confidence = max(scores[GENERAL_DOMAIN] / total_score, 0.58)
+            reason = self._build_general_reason(
+                top_specialist=top_specialist,
+                reasons=reasons[top_specialist],
+                top_specialist_signal=top_specialist_signal,
+                specialist_margin=specialist_margin,
+                total_score=total_score,
+                general_score=scores[GENERAL_DOMAIN],
+                mode="baseline",
+            )
+            return GENERAL_DOMAIN, confidence, reason
+
+        if top_specialist_signal < 1.05 and top_specialist_evidence < 2:
+            confidence = max(scores[GENERAL_DOMAIN] / total_score, 0.56)
+            reason = self._build_general_reason(
+                top_specialist=top_specialist,
+                reasons=reasons[top_specialist],
+                top_specialist_signal=top_specialist_signal,
+                specialist_margin=specialist_margin,
+                total_score=total_score,
+                general_score=scores[GENERAL_DOMAIN],
+                mode="weak",
+            )
+            return GENERAL_DOMAIN, confidence, reason
+
+        if specialist_margin < 0.35 and top_specialist_signal < 1.80:
+            confidence = max(scores[GENERAL_DOMAIN] / total_score, 0.54)
+            reason = self._build_general_reason(
+                top_specialist=top_specialist,
+                reasons=reasons[top_specialist],
+                top_specialist_signal=top_specialist_signal,
+                specialist_margin=specialist_margin,
+                total_score=total_score,
+                general_score=scores[GENERAL_DOMAIN],
+                mode="ambiguous",
+            )
+            return GENERAL_DOMAIN, confidence, reason
+
+        confidence = scores[top_specialist] / total_score
+        reason = self._build_reason(top_specialist, reasons[top_specialist], scores[top_specialist], total_score)
+        return top_specialist, confidence, reason
+
+    @staticmethod
+    def _build_general_reason(
+        *,
+        top_specialist: str,
+        reasons: list[tuple[float, str]],
+        top_specialist_signal: float,
+        specialist_margin: float,
+        total_score: float,
+        general_score: float,
+        mode: str,
+    ) -> str:
+        if not reasons:
+            return (
+                "general selected because no strong legal, medical, or cisco signals were found; "
+                f"score={general_score:.2f}/{total_score:.2f}"
+            )
+
+        ranked = sorted(reasons, key=lambda item: item[0], reverse=True)
+        detail = "; ".join(text for _, text in ranked[:3])
+        if mode == "baseline":
+            return (
+                f"general selected because specialized signals did not outrank the general baseline "
+                f"(strongest was {top_specialist}: {detail}); score={general_score:.2f}/{total_score:.2f}"
+            )
+        if mode == "weak":
+            return (
+                f"general selected because {top_specialist} signals stayed weak ({detail}); "
+                f"specialist-signal={top_specialist_signal:.2f}"
+            )
+        return (
+            f"general selected because specialized cues were ambiguous ({detail}); "
+            f"specialist-margin={specialist_margin:.2f}"
+        )

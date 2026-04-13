@@ -14,6 +14,16 @@ class DomainPromptProfile:
 
 
 PROMPT_PROFILES: dict[str, DomainPromptProfile] = {
+    "general": DomainPromptProfile(
+        system_instruction=(
+            "Treat the context as general-purpose material. Stay grounded in the retrieved text and avoid assuming "
+            "that the document is legal, medical, or networking content unless the context explicitly shows that."
+        ),
+        response_instruction=(
+            "Prefer plain, precise wording and call out when the retrieved context is incomplete instead of inferring "
+            "specialized meaning."
+        ),
+    ),
     "legal": DomainPromptProfile(
         system_instruction=(
             "Treat the context as legal material. Preserve clause intent precisely, distinguish obligations from "

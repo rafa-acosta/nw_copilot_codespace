@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
-SUPPORTED_DOMAINS: tuple[str, ...] = ("legal", "medical", "cisco")
+SUPPORTED_DOMAINS: tuple[str, ...] = ("general", "legal", "medical", "cisco")
 
 
 @dataclass(slots=True)
