@@ -4,17 +4,27 @@ PDF file loader.
 Handles loading and preprocessing of PDF documents.
 """
 
+from contextlib import contextmanager
 from pathlib import Path
+import re
+import threading
 from typing import Optional
 
 try:
     import PyPDF2
+    from PyPDF2 import _page as pypdf_page
 except ImportError:
     PyPDF2 = None
+    pypdf_page = None
 
 from .base import BaseDataLoader, IngestedData, IngestSource
 from .cleaning import TextCleaner
 from .utils import validate_file_exists, validate_file_extension
+
+
+_COLLAPSED_WORD_RE = re.compile(r"[A-Za-zÀ-ÿ]{18,}")
+_SPACE_RECOVERY_FACTOR = 0.995
+_SPACE_RECOVERY_LOCK = threading.Lock()
 
 
 class PDFLoader(BaseDataLoader):
@@ -90,7 +100,7 @@ class PDFLoader(BaseDataLoader):
                 # Extract text from all pages
                 text_parts = []
                 for page_num, page in enumerate(pdf_reader.pages):
-                    page_text = page.extract_text()
+                    page_text = self._extract_page_text(page)
                     if page_text:
                         text_parts.append(f"--- Page {page_num + 1} ---\n{page_text}")
                 
@@ -116,3 +126,66 @@ class PDFLoader(BaseDataLoader):
         )
         
         return IngestedData(content=cleaned_text, source=ingest_source)
+
+    def _extract_page_text(self, page) -> str:
+        page_text = page.extract_text() or ""
+        if not page_text or not self._needs_spacing_recovery(page_text):
+            return page_text
+
+        recovered_text = self._extract_text_with_space_recovery(page) or ""
+        if self._readability_score(recovered_text) > self._readability_score(page_text):
+            return recovered_text
+        return page_text
+
+    @staticmethod
+    def _needs_spacing_recovery(text: str) -> bool:
+        alpha_count = sum(char.isalpha() for char in text)
+        if alpha_count < 40:
+            return False
+        if len(_COLLAPSED_WORD_RE.findall(text)) >= 1:
+            return True
+        return text.count(" ") / max(alpha_count, 1) < 0.08
+
+    @staticmethod
+    def _readability_score(text: str) -> float:
+        alpha_count = sum(char.isalpha() for char in text)
+        if alpha_count == 0:
+            return 0.0
+        long_run_penalty = sum(len(match.group(0)) - 17 for match in _COLLAPSED_WORD_RE.finditer(text))
+        return (text.count(" ") - (long_run_penalty * 3)) / alpha_count
+
+    def _extract_text_with_space_recovery(self, page) -> str:
+        if pypdf_page is None:
+            return page.extract_text() or ""
+
+        with self._relaxed_space_widths():
+            return page.extract_text() or ""
+
+    @contextmanager
+    def _relaxed_space_widths(self):
+        if pypdf_page is None:
+            yield
+            return
+
+        original_build_char_map = pypdf_page.build_char_map
+
+        def patched_build_char_map(font_name, space_width, obj):
+            font_type, computed_space_width, encoding, cmap, font = original_build_char_map(
+                font_name,
+                space_width,
+                obj,
+            )
+            return (
+                font_type,
+                float(computed_space_width * _SPACE_RECOVERY_FACTOR),
+                encoding,
+                cmap,
+                font,
+            )
+
+        with _SPACE_RECOVERY_LOCK:
+            pypdf_page.build_char_map = patched_build_char_map
+            try:
+                yield
+            finally:
+                pypdf_page.build_char_map = original_build_char_map
