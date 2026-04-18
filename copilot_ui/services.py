@@ -24,6 +24,7 @@ from copilot_ui.ollama import FIXED_OLLAMA_MODEL, OllamaClient, OllamaError
 from domain_routing import DomainRouter, SUPPORTED_DOMAINS
 from rag_processing import CleanDocument, DocumentPipeline
 from retrieval import MetadataFilterSpec, RetrievalConfig, RetrievalMode, RetrievalRequest
+from retrieval.retrievers import ChromaVectorStore
 from retrieval.services import build_retrieval_service, build_stored_chunks
 from retrieval.utils import extract_sheet_headers
 
@@ -42,6 +43,7 @@ class QueryOptions:
 class CopilotApplicationService:
     """Owns document indexing, retrieval, and chat state for the GUI."""
 
+    CHROMA_COLLECTION_NAME = "nw_copilot_chunks"
     SUPPORTED_SOURCE_TYPES = (
         "text",
         "text_file",
@@ -66,6 +68,7 @@ class CopilotApplicationService:
         self.storage_dir = Path(storage_dir or "/tmp/nw_copilot_ui")
         self.upload_dir = self.storage_dir / "uploads"
         self.upload_dir.mkdir(parents=True, exist_ok=True)
+        self.chroma_path = self.storage_dir / "chroma"
 
         self.retrieval_config = retrieval_config or RetrievalConfig()
         self.processing_pipeline = DocumentPipeline(max_size=900, overlap=120)
@@ -283,6 +286,20 @@ class CopilotApplicationService:
         with self._lock:
             return self._snapshot_locked()
 
+    def inspect_vector_records(
+        self,
+        *,
+        limit: int = 20,
+        offset: int = 0,
+        include_embeddings: bool = False,
+    ) -> dict[str, object]:
+        with self._lock:
+            return self._inspect_vector_records_locked(
+                limit=limit,
+                offset=offset,
+                include_embeddings=include_embeddings,
+            )
+
     def last_upload_message(self) -> str | None:
         with self._lock:
             return self._last_upload_message
@@ -323,6 +340,31 @@ class CopilotApplicationService:
         content = base64.b64decode(payload.content_base64.encode("utf-8"))
         target.write_bytes(content)
         return target
+
+    def _inspect_vector_records_locked(
+        self,
+        *,
+        limit: int,
+        offset: int,
+        include_embeddings: bool,
+    ) -> dict[str, object]:
+        vector_store = self._current_vector_store_locked()
+        if vector_store is None:
+            vector_store = ChromaVectorStore(
+                persist_directory=self.chroma_path,
+                collection_name=self.CHROMA_COLLECTION_NAME,
+            )
+        return vector_store.peek_records(
+            limit=max(1, limit),
+            offset=max(0, offset),
+            include_embeddings=include_embeddings,
+        )
+
+    def _current_vector_store_locked(self) -> ChromaVectorStore | None:
+        if self._retrieval_service is None or self._retrieval_service.vector_retriever is None:
+            return None
+        vector_store = self._retrieval_service.vector_retriever.vector_store
+        return vector_store if isinstance(vector_store, ChromaVectorStore) else None
 
     def _refresh_ollama_models_locked(self, *, suppress_errors: bool = False) -> tuple[str, ...]:
         if self.ollama_client is None:
@@ -447,23 +489,32 @@ class CopilotApplicationService:
 
     def _rebuild_retrieval_service(self) -> None:
         if not self._records:
+            self._clear_chroma_index_locked()
             self._retrieval_service = None
             return
         self._retrieval_service = build_retrieval_service(
             self._records,
             query_embedder=self.embedding_model.as_query_embedder(),
             config=self.retrieval_config,
+            chroma_path=self.chroma_path,
+            collection_name=self.CHROMA_COLLECTION_NAME,
         )
 
     def _rebuild_retrieval_service_with_embedder(self, embedding_model: OllamaEmbeddingModel) -> None:
         if not self._records:
+            self._clear_chroma_index_locked()
             self._retrieval_service = None
             return
         self._retrieval_service = build_retrieval_service(
             self._records,
             query_embedder=embedding_model.as_query_embedder(),
             config=self.retrieval_config,
+            chroma_path=self.chroma_path,
+            collection_name=self.CHROMA_COLLECTION_NAME,
         )
+
+    def _clear_chroma_index_locked(self) -> None:
+        ChromaVectorStore.clear_collection(self.chroma_path, self.CHROMA_COLLECTION_NAME)
 
     def _clear_documents_locked(self) -> None:
         for indexed in self._documents.values():
@@ -472,6 +523,7 @@ class CopilotApplicationService:
                 path.unlink()
         self._documents.clear()
         self._records.clear()
+        self._clear_chroma_index_locked()
         self._retrieval_service = None
 
     def _reindex_documents_with_model_locked(

@@ -7,6 +7,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 import webbrowser
 
 from copilot_ui.models import UploadedFilePayload
@@ -39,22 +40,44 @@ class CopilotRequestHandler(BaseHTTPRequestHandler):
     service: CopilotApplicationService
 
     def do_GET(self) -> None:  # noqa: N802
-        if self.path in {"/", "/index.html"}:
-            self._serve_static("index.html", "text/html; charset=utf-8")
-            return
-        if self.path == "/static/styles.css":
-            self._serve_static("styles.css", "text/css; charset=utf-8")
-            return
-        if self.path == "/static/app.js":
-            self._serve_static("app.js", "application/javascript; charset=utf-8")
-            return
-        if self.path == "/api/state":
-            _json_response(self, HTTPStatus.OK, {"ok": True, "state": self.service.snapshot().to_dict()})
-            return
-        if self.path == "/api/health":
-            _json_response(self, HTTPStatus.OK, {"ok": True})
-            return
-        _json_response(self, HTTPStatus.NOT_FOUND, {"ok": False, "error": "Route not found"})
+        try:
+            parsed = urlparse(self.path)
+            route = parsed.path
+            query = parse_qs(parsed.query)
+
+            if route in {"/", "/index.html"}:
+                self._serve_static("index.html", "text/html; charset=utf-8")
+                return
+            if route == "/static/styles.css":
+                self._serve_static("styles.css", "text/css; charset=utf-8")
+                return
+            if route == "/static/app.js":
+                self._serve_static("app.js", "application/javascript; charset=utf-8")
+                return
+            if route == "/api/state":
+                _json_response(self, HTTPStatus.OK, {"ok": True, "state": self.service.snapshot().to_dict()})
+                return
+            if route == "/api/health":
+                _json_response(self, HTTPStatus.OK, {"ok": True})
+                return
+            if route == "/api/chroma/records":
+                limit = int(query.get("limit", ["20"])[0])
+                offset = int(query.get("offset", ["0"])[0])
+                include_embeddings = query.get("include_embeddings", ["0"])[0].casefold() in {"1", "true", "yes"}
+                payload = self.service.inspect_vector_records(
+                    limit=limit,
+                    offset=offset,
+                    include_embeddings=include_embeddings,
+                )
+                _json_response(self, HTTPStatus.OK, {"ok": True, **payload})
+                return
+            _json_response(self, HTTPStatus.NOT_FOUND, {"ok": False, "error": "Route not found"})
+        except Exception as exc:  # noqa: BLE001
+            _json_response(
+                self,
+                HTTPStatus.BAD_REQUEST,
+                {"ok": False, "error": str(exc)},
+            )
 
     def do_POST(self) -> None:  # noqa: N802
         try:

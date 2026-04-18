@@ -101,6 +101,19 @@ class CopilotApplicationServiceTests(unittest.TestCase):
         self.assertIn("missing_dependency.pdf", self.service.last_upload_message())
         self.assertIn("PyPDF2 is required for PDF loading", self.service.last_upload_message())
 
+    def test_inspect_vector_records_returns_chunk_documents_and_embeddings(self) -> None:
+        self.service.add_uploaded_files(
+            [encode_text_payload("notes.txt", "Project note about hurricane evacuation procedures.")]
+        )
+
+        inspection = self.service.inspect_vector_records(limit=5, include_embeddings=True)
+
+        self.assertEqual(inspection["collection_name"], "nw_copilot_chunks")
+        self.assertGreaterEqual(inspection["total"], 1)
+        self.assertTrue(inspection["records"])
+        self.assertIn("hurricane evacuation procedures", inspection["records"][0]["document"])
+        self.assertTrue(inspection["records"][0]["embedding"])
+
 
 class FakeResponse:
     def __init__(self, payload: dict, *, status_code: int = 200) -> None:

@@ -32,6 +32,7 @@ setup(
     ],
     python_requires=">=3.8",
     install_requires=[
+        "chromadb>=1.0,<2.0",
         "PyPDF2==3.0.1",
         "beautifulsoup4==4.12.2",
         "requests==2.31.0",

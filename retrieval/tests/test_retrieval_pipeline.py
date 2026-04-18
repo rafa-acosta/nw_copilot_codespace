@@ -1,4 +1,5 @@
 import unittest
+import tempfile
 
 from retrieval import (
     CallableQueryEmbedder,
@@ -39,6 +40,7 @@ def embed_text(text: str) -> list[float]:
 
 class RetrievalPipelineTests(unittest.TestCase):
     def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
         records = [
             StoredChunk(
                 text="Hurricane preparedness checklist and evacuation procedures for coastal regions.",
@@ -126,7 +128,15 @@ class RetrievalPipelineTests(unittest.TestCase):
         config = RetrievalConfig()
         config.observability.debug = True
         embedder = CallableQueryEmbedder(embed_text, expected_dimension=len(VOCABULARY))
-        self.service = build_retrieval_service(records, query_embedder=embedder, config=config)
+        self.service = build_retrieval_service(
+            records,
+            query_embedder=embedder,
+            config=config,
+            chroma_path=f"{self.temp_dir.name}/chroma",
+        )
+
+    def tearDown(self) -> None:
+        self.temp_dir.cleanup()
 
     def test_query_processor_preserves_technical_terms(self) -> None:
         processed = self.service.query_processor.process(
