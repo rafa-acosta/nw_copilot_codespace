@@ -22,6 +22,7 @@ from copilot_ui.models import (
 )
 from copilot_ui.ollama import FIXED_OLLAMA_MODEL, OllamaClient, OllamaError
 from domain_routing import DomainRouter, SUPPORTED_DOMAINS
+from evaluation import RagasEvaluationPayload, RagasEvaluator, RagasEvaluatorConfig
 from rag_processing import CleanDocument, DocumentPipeline
 from retrieval import MetadataFilterSpec, RetrievalConfig, RetrievalMode, RetrievalRequest
 from retrieval.retrievers import ChromaVectorStore
@@ -64,6 +65,7 @@ class CopilotApplicationService:
         embedding_model: HashingEmbeddingModel | OllamaEmbeddingModel | None = None,
         answer_generator: AnswerGenerator | None = None,
         ollama_client: OllamaClient | None = None,
+        ragas_evaluator: object | None = None,
     ) -> None:
         self.storage_dir = Path(storage_dir or "/tmp/nw_copilot_ui")
         self.upload_dir = self.storage_dir / "uploads"
@@ -78,6 +80,8 @@ class CopilotApplicationService:
         self._records = []
         self._messages: list[ChatMessage] = []
         self._retrieval_service = None
+        self._evaluation_payloads: dict[str, RagasEvaluationPayload] = {}
+        self._ragas_evaluator = ragas_evaluator
         self._ollama_available_models: tuple[str, ...] = ()
         self._ollama_last_error: str | None = None
         self._last_upload_message: str | None = None
@@ -163,6 +167,7 @@ class CopilotApplicationService:
     def clear_chat(self) -> AppSnapshot:
         with self._lock:
             self._messages.clear()
+            self._evaluation_payloads.clear()
             return self._snapshot_locked()
 
     def refresh_ollama_models(self) -> AppSnapshot:
@@ -279,11 +284,43 @@ class CopilotApplicationService:
                     "source_counts": self._summarize_sources(retrieval_response),
                 },
             )
+            if retrieval_response.results and generated.content.strip():
+                assistant_message.meta["ragas_available"] = True
+                assistant_message.meta["ragas_evaluated"] = False
+                self._evaluation_payloads[assistant_message.message_id] = self._build_evaluation_payload(
+                    query=message,
+                    response=generated.content,
+                    retrieval_response=retrieval_response,
+                )
             self._messages.append(assistant_message)
             return self._snapshot_locked()
 
     def snapshot(self) -> AppSnapshot:
         with self._lock:
+            return self._snapshot_locked()
+
+    def evaluate_message(
+        self,
+        message_id: str,
+        *,
+        reference: str | None = None,
+        metrics: tuple[str, ...] = (),
+    ) -> AppSnapshot:
+        with self._lock:
+            payload = self._evaluation_payloads.get(message_id)
+            if payload is None:
+                raise ValueError("No RAGAS evaluation payload is available for that message.")
+            payload = payload.with_reference(reference)
+            evaluator = self._resolve_ragas_evaluator_locked()
+
+        result = evaluator.evaluate(payload, metrics=metrics or None)
+
+        with self._lock:
+            message = self._find_message_locked(message_id)
+            if message is None:
+                raise ValueError("Message no longer exists.")
+            message.meta["ragas"] = result.to_dict()
+            message.meta["ragas_evaluated"] = True
             return self._snapshot_locked()
 
     def inspect_vector_records(
@@ -525,6 +562,51 @@ class CopilotApplicationService:
         self._records.clear()
         self._clear_chroma_index_locked()
         self._retrieval_service = None
+
+    def _resolve_ragas_evaluator_locked(self) -> object:
+        if self._ragas_evaluator is not None:
+            return self._ragas_evaluator
+
+        if RagasEvaluatorConfig.has_env_override():
+            return RagasEvaluator(RagasEvaluatorConfig.from_env())
+
+        if self.ollama_client is not None:
+            config = RagasEvaluatorConfig.from_ollama(
+                base_url=self.ollama_client.base_url,
+                chat_model=self.ollama_client.chat_model,
+                embedding_model=self.ollama_client.embedding_model,
+            )
+            return RagasEvaluator(config)
+
+        return RagasEvaluator()
+
+    @staticmethod
+    def _build_evaluation_payload(
+        *,
+        query: str,
+        response: str,
+        retrieval_response,
+    ) -> RagasEvaluationPayload:
+        results = retrieval_response.results
+        return RagasEvaluationPayload(
+            user_input=query,
+            response=response,
+            retrieved_contexts=tuple(result.text for result in results),
+            retrieved_context_ids=tuple(result.chunk_id for result in results),
+            retrieved_context_metadata=tuple(result.metadata for result in results),
+            metadata={
+                "retrieval_mode": retrieval_response.retrieval_mode,
+                "domain": retrieval_response.domain,
+                "domain_confidence": retrieval_response.domain_confidence,
+                "domain_filter_applied": retrieval_response.domain_filter_applied,
+            },
+        )
+
+    def _find_message_locked(self, message_id: str) -> ChatMessage | None:
+        for message in self._messages:
+            if message.message_id == message_id:
+                return message
+        return None
 
     def _reindex_documents_with_model_locked(
         self,

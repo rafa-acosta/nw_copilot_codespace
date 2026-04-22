@@ -148,6 +148,18 @@ function renderMessages() {
     }
     fragment.querySelector(".message-meta").textContent = metaParts.join(" • ");
 
+    const actions = fragment.querySelector(".message-actions");
+    const ragasResults = fragment.querySelector(".ragas-results");
+    if (message.role === "assistant" && message.meta?.ragas_available) {
+      const evaluateButton = document.createElement("button");
+      evaluateButton.type = "button";
+      evaluateButton.className = "ghost-button evaluate-button";
+      evaluateButton.textContent = message.meta?.ragas_evaluated ? "Re-evaluate with RAGAS" : "Evaluate with RAGAS";
+      evaluateButton.addEventListener("click", () => evaluateMessage(message.message_id, evaluateButton));
+      actions.appendChild(evaluateButton);
+      renderRagasResults(ragasResults, message.meta?.ragas);
+    }
+
     const citationList = fragment.querySelector(".citation-list");
     for (const citation of message.citations || []) {
       const citationFragment = citationTemplate.content.cloneNode(true);
@@ -161,6 +173,45 @@ function renderMessages() {
   }
 
   chatScroll.scrollTop = chatScroll.scrollHeight;
+}
+
+function renderRagasResults(container, ragas) {
+  container.innerHTML = "";
+  if (!ragas || !Array.isArray(ragas.metrics)) {
+    return;
+  }
+
+  const summary = document.createElement("div");
+  summary.className = "ragas-summary";
+  summary.textContent = `RAGAS • ${ragas.model || "judge model"} • ${ragas.retrieved_context_count || 0} context(s)`;
+  container.appendChild(summary);
+
+  const grid = document.createElement("div");
+  grid.className = "ragas-metric-grid";
+  for (const metric of ragas.metrics) {
+    const item = document.createElement("div");
+    item.className = "ragas-metric";
+    item.classList.toggle("has-error", Boolean(metric.error || metric.skipped));
+
+    const name = document.createElement("span");
+    name.className = "ragas-metric-name";
+    name.textContent = String(metric.name || "").replace(/_/g, " ");
+
+    const score = document.createElement("strong");
+    score.className = "ragas-metric-score";
+    score.textContent = metric.score === null || metric.score === undefined ? "n/a" : Number(metric.score).toFixed(3);
+
+    item.appendChild(name);
+    item.appendChild(score);
+    if (metric.reason || metric.error) {
+      const note = document.createElement("p");
+      note.className = "ragas-metric-note";
+      note.textContent = metric.error || metric.reason;
+      item.appendChild(note);
+    }
+    grid.appendChild(item);
+  }
+  container.appendChild(grid);
 }
 
 function renderFilters() {
@@ -531,6 +582,26 @@ async function refreshOllamaModels() {
     "Refreshed local Ollama models.",
     "Refreshing Ollama models..."
   );
+}
+
+async function evaluateMessage(messageId, button) {
+  const previousLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "Evaluating...";
+  setStatus("Evaluating answer with RAGAS...");
+
+  try {
+    const payload = await api("/api/chat/evaluate", {
+      method: "POST",
+      body: JSON.stringify({ message_id: messageId }),
+    });
+    applyState(payload.state);
+    setStatus(payload.message || "RAGAS evaluation complete.");
+  } catch (error) {
+    setStatus(error.message, true);
+    button.disabled = false;
+    button.textContent = previousLabel;
+  }
 }
 
 async function sendMessage() {

@@ -114,6 +114,19 @@ class CopilotRequestHandler(BaseHTTPRequestHandler):
                 state = self.service.clear_chat()
                 _json_response(self, HTTPStatus.OK, {"ok": True, "state": state.to_dict()})
                 return
+            if self.path == "/api/chat/evaluate":
+                metrics = tuple(str(item) for item in payload.get("metrics", []) if str(item).strip())
+                state = self.service.evaluate_message(
+                    str(payload.get("message_id", "")),
+                    reference=str(payload.get("reference", "")).strip() or None,
+                    metrics=metrics,
+                )
+                _json_response(
+                    self,
+                    HTTPStatus.OK,
+                    {"ok": True, "state": state.to_dict(), "message": "RAGAS evaluation complete."},
+                )
+                return
             if self.path == "/api/settings/ollama":
                 state = self.service.update_ollama_settings(
                     chat_model=str(payload.get("chat_model", "")).strip() or None,

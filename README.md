@@ -151,6 +151,34 @@ If you use different local models, set `OLLAMA_EMBED_MODEL` and `OLLAMA_CHAT_MOD
 You can also change both models from the GUI itself through the new `Ollama Models` panel. Use `Refresh`
 after pulling a new model, then apply the new chat or embedding model directly in the browser.
 
+### On-demand RAGAS evaluation
+
+Assistant answers can be evaluated with RAGAS only when requested. After an answer is generated, use the
+`Evaluate with RAGAS` button in the chat UI, or call `POST /api/chat/evaluate` with the assistant
+`message_id`. The normal chat path stores the question, answer, retrieved contexts, and chunk ids, but does
+not run RAGAS until that explicit evaluation request.
+
+RAGAS evaluates the answer produced by the active Ollama copilot model. If you set `RAGAS_*` or
+`OPENAI_API_KEY`, those settings choose the RAGAS judge model and take precedence over the active Ollama
+model. If no evaluator override is configured, the evaluator falls back to the active Ollama chat and
+embedding models through Ollama's OpenAI-compatible `/v1` endpoint.
+
+For dev-only evaluation with an independent OpenAI judge:
+
+```bash
+export RAGAS_LLM_MODEL=gpt-4o-mini
+export RAGAS_EMBED_MODEL=text-embedding-3-small
+export RAGAS_TIMEOUT_SECONDS=45
+export OPENAI_API_KEY=...
+```
+
+Default on-demand metrics are `faithfulness` and `context_utilization` because they are the most useful
+for checking whether an Ollama answer is grounded in retrieved context. Add more metrics when needed:
+
+```bash
+export RAGAS_METRICS=faithfulness,context_utilization,answer_relevancy
+```
+
 ---
 
 ## API Reference

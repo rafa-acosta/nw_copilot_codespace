@@ -33,9 +33,11 @@ setup(
     python_requires=">=3.8",
     install_requires=[
         "chromadb>=1.0,<2.0",
+        "ragas>=0.4,<0.5",
+        "openai>=1.0,<2.0",
         "PyPDF2==3.0.1",
         "beautifulsoup4==4.12.2",
-        "requests==2.31.0",
+        "requests>=2.32.2,<3.0",
         "python-docx==0.8.11",
         "openpyxl==3.1.5",
         "lxml==4.9.3",

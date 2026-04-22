@@ -12,6 +12,7 @@ from copilot_ui.embeddings import HashingEmbeddingModel, OllamaEmbeddingModel
 from copilot_ui.models import UploadedFilePayload
 from copilot_ui.ollama import FIXED_OLLAMA_MODEL, OllamaClient
 from copilot_ui.services import CopilotApplicationService, QueryOptions
+from evaluation import RagasEvaluationResult, RagasMetricResult
 from retrieval.models import RetrievalResponse, RetrievedChunk, RetrievalTiming
 
 
@@ -113,6 +114,112 @@ class CopilotApplicationServiceTests(unittest.TestCase):
         self.assertTrue(inspection["records"])
         self.assertIn("hurricane evacuation procedures", inspection["records"][0]["document"])
         self.assertTrue(inspection["records"][0]["embedding"])
+
+    def test_ragas_evaluation_is_demand_only(self) -> None:
+        class FakeRagasEvaluator:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def evaluate(self, payload, *, metrics=None):
+                self.calls.append((payload, metrics))
+                return RagasEvaluationResult(
+                    metrics=(RagasMetricResult(name="faithfulness", score=0.91),),
+                    provider="fake",
+                    model="fake-judge",
+                    retrieved_context_count=len(payload.retrieved_contexts),
+                )
+
+        fake_evaluator = FakeRagasEvaluator()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            service = CopilotApplicationService(
+                storage_dir=temp_dir,
+                embedding_model=HashingEmbeddingModel(),
+                answer_generator=GroundedAnswerGenerator(),
+                ragas_evaluator=fake_evaluator,
+            )
+            service.add_uploaded_files(
+                [encode_text_payload("notes.txt", "Project note about vlan 10 and interface status.")]
+            )
+
+            state = service.ask("What does the note mention?", QueryOptions(mode="hybrid", top_k=2))
+            assistant_message = state.messages[-1]
+
+            self.assertEqual(fake_evaluator.calls, [])
+            self.assertTrue(assistant_message.meta["ragas_available"])
+            self.assertFalse(assistant_message.meta["ragas_evaluated"])
+
+            evaluated = service.evaluate_message(assistant_message.message_id)
+
+        self.assertEqual(len(fake_evaluator.calls), 1)
+        payload, metrics = fake_evaluator.calls[0]
+        self.assertIsNone(metrics)
+        self.assertEqual(payload.user_input, "What does the note mention?")
+        self.assertIn("vlan 10", payload.retrieved_contexts[0])
+        self.assertTrue(evaluated.messages[-1].meta["ragas_evaluated"])
+        self.assertEqual(evaluated.messages[-1].meta["ragas"]["metrics"][0]["score"], 0.91)
+
+    def test_ragas_evaluation_passes_reference_and_metric_selection(self) -> None:
+        class FakeRagasEvaluator:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def evaluate(self, payload, *, metrics=None):
+                self.calls.append((payload, metrics))
+                return RagasEvaluationResult(
+                    metrics=(RagasMetricResult(name="context_recall", score=1.0),),
+                    provider="fake",
+                    model="fake-judge",
+                    reference_provided=bool(payload.reference),
+                    retrieved_context_count=len(payload.retrieved_contexts),
+                )
+
+        fake_evaluator = FakeRagasEvaluator()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            service = CopilotApplicationService(
+                storage_dir=temp_dir,
+                embedding_model=HashingEmbeddingModel(),
+                answer_generator=GroundedAnswerGenerator(),
+                ragas_evaluator=fake_evaluator,
+            )
+            service.add_uploaded_files([encode_text_payload("notes.txt", "The interface status is up.")])
+            state = service.ask("What is the interface status?", QueryOptions(mode="hybrid", top_k=1))
+
+            evaluated = service.evaluate_message(
+                state.messages[-1].message_id,
+                reference="The interface status is up.",
+                metrics=("context_recall",),
+            )
+
+        payload, metrics = fake_evaluator.calls[0]
+        self.assertEqual(payload.reference, "The interface status is up.")
+        self.assertEqual(metrics, ("context_recall",))
+        self.assertTrue(evaluated.messages[-1].meta["ragas"]["reference_provided"])
+
+    def test_ragas_env_config_takes_precedence_over_active_ollama_model(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            service = CopilotApplicationService(
+                storage_dir=temp_dir,
+                ollama_client=FakeOllamaClient(
+                    chat_model="qwen2.5-coder:7b-instruct",
+                    embedding_model="nomic-embed-text",
+                ),
+            )
+
+            with patch.dict(
+                os.environ,
+                {
+                    "RAGAS_API_KEY": "test-key",
+                    "RAGAS_LLM_MODEL": "gpt-4o-mini",
+                    "RAGAS_EMBED_MODEL": "text-embedding-3-small",
+                },
+                clear=False,
+            ), patch("copilot_ui.services.RagasEvaluator") as evaluator_cls:
+                service._resolve_ragas_evaluator_locked()
+
+        config = evaluator_cls.call_args.args[0]
+        self.assertEqual(config.llm_model, "gpt-4o-mini")
+        self.assertEqual(config.embedding_model, "text-embedding-3-small")
+        self.assertEqual(config.api_key, "test-key")
 
 
 class FakeResponse:
