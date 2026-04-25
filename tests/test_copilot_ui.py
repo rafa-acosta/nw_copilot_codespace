@@ -12,7 +12,7 @@ from copilot_ui.embeddings import HashingEmbeddingModel, OllamaEmbeddingModel
 from copilot_ui.models import UploadedFilePayload
 from copilot_ui.ollama import FIXED_OLLAMA_MODEL, OllamaClient
 from copilot_ui.services import CopilotApplicationService, QueryOptions
-from evaluation import RagasEvaluationResult, RagasMetricResult
+from evaluation import RagasEvaluationResult, RagasEvaluator, RagasEvaluatorConfig, RagasMetricResult
 from retrieval.models import RetrievalResponse, RetrievedChunk, RetrievalTiming
 
 
@@ -220,6 +220,64 @@ class CopilotApplicationServiceTests(unittest.TestCase):
         self.assertEqual(config.llm_model, "gpt-4o-mini")
         self.assertEqual(config.embedding_model, "text-embedding-3-small")
         self.assertEqual(config.api_key, "test-key")
+
+    def test_ragas_gpt5_family_defaults_choose_low_reasoning_and_more_tokens(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "test-key",
+                "RAGAS_LLM_MODEL": "gpt-5.5",
+            },
+            clear=True,
+        ):
+            config = RagasEvaluatorConfig.from_env()
+
+        self.assertEqual(config.reasoning_effort, "low")
+        self.assertEqual(config.max_tokens, 4096)
+
+    def test_ragas_reasoning_settings_can_be_overridden_from_env(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "test-key",
+                "RAGAS_LLM_MODEL": "gpt-5",
+                "RAGAS_REASONING_EFFORT": "minimal",
+                "RAGAS_MAX_TOKENS": "8192",
+            },
+            clear=True,
+        ):
+            config = RagasEvaluatorConfig.from_env()
+
+        self.assertEqual(config.reasoning_effort, "minimal")
+        self.assertEqual(config.max_tokens, 8192)
+
+    def test_ragas_evaluator_rewrites_gpt5_family_model_args(self) -> None:
+        class FakeLLM:
+            def __init__(self) -> None:
+                self.model_args = {
+                    "temperature": 0.01,
+                    "top_p": 0.1,
+                    "max_tokens": 1024,
+                }
+
+        evaluator = RagasEvaluator(
+            RagasEvaluatorConfig(
+                llm_model="gpt-5.5",
+                api_key="test-key",
+                reasoning_effort="low",
+                max_tokens=4096,
+            )
+        )
+
+        fake_llm = FakeLLM()
+        with patch("openai.AsyncOpenAI"), patch("ragas.llms.llm_factory", return_value=fake_llm):
+            evaluator._ensure_clients()
+
+        self.assertEqual(fake_llm.model_args["temperature"], 1.0)
+        self.assertEqual(fake_llm.model_args["reasoning_effort"], "low")
+        self.assertEqual(fake_llm.model_args["max_completion_tokens"], 4096)
+        self.assertNotIn("top_p", fake_llm.model_args)
+        self.assertNotIn("max_tokens", fake_llm.model_args)
 
 
 class FakeResponse:

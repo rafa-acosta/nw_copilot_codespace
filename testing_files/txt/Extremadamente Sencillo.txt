@@ -1,0 +1,9 @@
+Nombre:Rafael Acosta Munguia
+Edad: 51
+Genero: Masculino
+Direccion: Condominio El Cafetal, San Pablo de Heredia, Costa Rica.
+Profesión: Ingeniero de telecomunicaciones.
+Aficiones: Musica y AIML
+Estado civil: casado
+Hijos: uno
+

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 import os
+import re
 import threading
 from typing import Any, Iterable
 
@@ -36,6 +37,8 @@ class RagasEvaluatorConfig:
     base_url: str | None = None
     timeout_seconds: float = 45.0
     system_prompt: str = "You are a careful evaluator for retrieval-augmented generation answers."
+    reasoning_effort: str | None = None
+    max_tokens: int | None = None
 
     @classmethod
     def from_ollama(
@@ -52,6 +55,8 @@ class RagasEvaluatorConfig:
             api_key="ollama",
             base_url=_openai_compatible_base_url(base_url),
             timeout_seconds=_positive_float_from_env("RAGAS_TIMEOUT_SECONDS", 45.0),
+            reasoning_effort=_ragas_reasoning_effort(chat_model),
+            max_tokens=_ragas_max_tokens(chat_model),
         )
 
     @classmethod
@@ -60,6 +65,7 @@ class RagasEvaluatorConfig:
         if not base_url and os.getenv("OLLAMA_BASE_URL"):
             base_url = _openai_compatible_base_url(os.environ["OLLAMA_BASE_URL"])
 
+        llm_model = os.getenv("RAGAS_LLM_MODEL") or os.getenv("OLLAMA_CHAT_MODEL") or "gpt-4o-mini"
         api_key = (
             os.getenv("RAGAS_API_KEY")
             or os.getenv("OPENAI_API_KEY")
@@ -67,11 +73,13 @@ class RagasEvaluatorConfig:
         )
         return cls(
             provider=os.getenv("RAGAS_PROVIDER", "openai"),
-            llm_model=os.getenv("RAGAS_LLM_MODEL") or os.getenv("OLLAMA_CHAT_MODEL") or "gpt-4o-mini",
+            llm_model=llm_model,
             embedding_model=os.getenv("RAGAS_EMBED_MODEL") or os.getenv("OLLAMA_EMBED_MODEL") or "text-embedding-3-small",
             api_key=api_key,
             base_url=base_url,
             timeout_seconds=_positive_float_from_env("RAGAS_TIMEOUT_SECONDS", 45.0),
+            reasoning_effort=_ragas_reasoning_effort(llm_model),
+            max_tokens=_ragas_max_tokens(llm_model),
         )
 
     @staticmethod
@@ -85,6 +93,9 @@ class RagasEvaluatorConfig:
                 "RAGAS_OPENAI_BASE_URL",
                 "RAGAS_API_KEY",
                 "OPENAI_API_KEY",
+                "RAGAS_REASONING_EFFORT",
+                "RAGAS_MAX_TOKENS",
+                "RAGAS_MAX_COMPLETION_TOKENS",
             )
         )
 
@@ -282,6 +293,7 @@ class RagasEvaluator:
             client=self._client,
             system_prompt=self.config.system_prompt,
         )
+        self._apply_reasoning_model_overrides()
 
     def _ensure_embeddings(self) -> None:
         if self._embeddings is not None:
@@ -301,6 +313,29 @@ class RagasEvaluator:
                 model=self.config.embedding_model,
                 client=self._client,
             )
+
+    def _apply_reasoning_model_overrides(self) -> None:
+        if self.config.provider.casefold() != "openai":
+            return
+        if not _is_reasoning_model_name(self.config.llm_model):
+            return
+        model_args = getattr(self._llm, "model_args", None)
+        if not isinstance(model_args, dict):
+            return
+
+        # GPT-5/o-series models can burn the whole output budget on reasoning before
+        # returning the structured JSON RAGAS expects. We force Chat Completions-safe
+        # parameters here so newer dotted model IDs like gpt-5.5 also behave.
+        model_args["temperature"] = 1.0
+        model_args.pop("top_p", None)
+
+        if self.config.reasoning_effort:
+            model_args["reasoning_effort"] = self.config.reasoning_effort
+
+        max_tokens = self.config.max_tokens
+        if max_tokens is not None:
+            model_args.pop("max_tokens", None)
+            model_args["max_completion_tokens"] = max_tokens
 
 
 class _SkippedMetric:
@@ -330,6 +365,57 @@ def _positive_float_from_env(name: str, default: float) -> float:
     if value <= 0:
         raise ValueError(f"{name} must be a positive number")
     return value
+
+
+def _optional_positive_int_from_env(*names: str) -> int | None:
+    for name in names:
+        raw_value = os.getenv(name)
+        if raw_value is None or not raw_value.strip():
+            continue
+        try:
+            value = int(raw_value)
+        except ValueError as exc:
+            raise ValueError(f"{name} must be a positive integer") from exc
+        if value <= 0:
+            raise ValueError(f"{name} must be a positive integer")
+        return value
+    return None
+
+
+def _ragas_reasoning_effort(model_name: str) -> str | None:
+    configured = os.getenv("RAGAS_REASONING_EFFORT")
+    if configured is not None and configured.strip():
+        return configured.strip()
+    if _is_reasoning_model_name(model_name):
+        return "low"
+    return None
+
+
+def _ragas_max_tokens(model_name: str) -> int | None:
+    configured = _optional_positive_int_from_env(
+        "RAGAS_MAX_TOKENS",
+        "RAGAS_MAX_COMPLETION_TOKENS",
+    )
+    if configured is not None:
+        return configured
+    if _is_reasoning_model_name(model_name):
+        return 4096
+    return None
+
+
+def _is_reasoning_model_name(model_name: str) -> bool:
+    normalized = model_name.strip().casefold()
+    if not normalized:
+        return False
+    if re.match(r"^o[1-9](?:$|[-_])", normalized):
+        return True
+    if normalized == "codex-mini":
+        return True
+
+    match = re.match(r"^gpt-(\d+)(?:\.\d+)?(?:$|[-_])", normalized)
+    if match is None:
+        return False
+    return int(match.group(1)) >= 5
 
 
 def _openai_compatible_base_url(base_url: str) -> str:

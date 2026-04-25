@@ -166,11 +166,17 @@ embedding models through Ollama's OpenAI-compatible `/v1` endpoint.
 For dev-only evaluation with an independent OpenAI judge:
 
 ```bash
-export RAGAS_LLM_MODEL=gpt-4o-mini
+export RAGAS_LLM_MODEL=gpt-5
 export RAGAS_EMBED_MODEL=text-embedding-3-small
+export RAGAS_REASONING_EFFORT=low
+export RAGAS_MAX_TOKENS=4096
 export RAGAS_TIMEOUT_SECONDS=45
 export OPENAI_API_KEY=...
 ```
+
+GPT-5-family judge models can spend their whole completion budget on reasoning before returning the
+structured JSON that RAGAS expects. This project now defaults those models to `low` reasoning effort and
+`4096` max completion tokens; use `RAGAS_REASONING_EFFORT` and `RAGAS_MAX_TOKENS` to tune that behavior.
 
 Default on-demand metrics are `faithfulness` and `context_utilization` because they are the most useful
 for checking whether an Ollama answer is grounded in retrieved context. Add more metrics when needed:
