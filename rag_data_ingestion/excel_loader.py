@@ -47,7 +47,7 @@ class ExcelLoader(BaseDataLoader):
                 "Install with: pip install openpyxl"
             )
         
-        self.cleaner = cleaner or TextCleaner()
+        self.cleaner = cleaner or TextCleaner.for_structured_data()
     
     def validate_source(self, source: str) -> bool:
         """

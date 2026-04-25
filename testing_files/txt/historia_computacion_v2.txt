@@ -1,0 +1,129 @@
+
+HISTORIA DE LA COMPUTACIÓN (RESUMEN EJECUTIVO AMPLIADO)
+
+INTRODUCCIÓN
+
+La historia de la computación es el resultado de la evolución conjunta de múltiples disciplinas: matemáticas, ingeniería, lógica y electrónica. Este desarrollo ha permitido transformar herramientas primitivas de cálculo en sistemas complejos capaces de procesar información a gran escala. A continuación se presenta un recorrido estructurado, claro y sin redundancias, adecuado para contexto profesional.
+
+1. FUNDAMENTOS DEL CÁLCULO (ANTES DEL SIGLO XIX)
+
+El pensamiento computacional inicia con la necesidad humana de contar y calcular. El ábaco, utilizado desde aproximadamente 2000 a.C., permitió realizar operaciones básicas de forma sistemática.
+
+En el siglo XVII, se producen avances clave:
+- Blaise Pascal desarrolla la Pascalina (1642), una calculadora mecánica.
+- Gottfried Leibniz mejora estos sistemas incorporando multiplicación y división automática.
+
+Estos dispositivos introducen dos conceptos esenciales:
+- Automatización del cálculo
+- Representación mecánica de operaciones matemáticas
+
+2. EL NACIMIENTO DEL CONCEPTO DE COMPUTADORA
+
+En el siglo XIX, Charles Babbage diseña dos máquinas fundamentales:
+- Máquina Diferencial: orientada al cálculo automático de tablas.
+- Máquina Analítica: primer diseño de computadora programable.
+
+La Máquina Analítica incluía:
+- Unidad de procesamiento
+- Memoria
+- Entrada y salida
+- Programación mediante tarjetas perforadas
+
+Ada Lovelace conceptualiza que estas máquinas pueden procesar más que números, anticipando la computación general.
+
+3. TRANSICIÓN A LA COMPUTACIÓN ELECTROMECÁNICA
+
+A finales del siglo XIX y principios del XX:
+- Herman Hollerith introduce tarjetas perforadas para el censo de EE.UU.
+- Se establecen bases para procesamiento masivo de datos
+
+Durante la Segunda Guerra Mundial:
+- Colossus (Reino Unido): descifrado de códigos
+- ENIAC (EE.UU.): cálculo balístico
+
+Características:
+- Uso de tubos de vacío
+- Alta velocidad para la época
+- Tamaño y consumo elevados
+
+4. GENERACIONES DE COMPUTADORAS
+
+Primera generación (1940-1956)
+- Tubos de vacío
+- Lenguaje máquina
+- Ejemplo: ENIAC
+
+Segunda generación (1956-1963)
+- Transistores reemplazan tubos
+- Mayor eficiencia y confiabilidad
+
+Tercera generación (1964-1971)
+- Circuitos integrados
+- Reducción de tamaño y costo
+
+Cuarta generación (1971-presente)
+- Microprocesadores
+- Computadoras personales
+- Ejemplo: IBM PC
+
+Quinta generación (actualidad)
+- Inteligencia artificial
+- Procesamiento paralelo
+- Sistemas autónomos
+
+5. EVOLUCIÓN DEL SOFTWARE
+
+El hardware por sí solo no define la computación moderna. El software introduce abstracción y control.
+
+Lenguajes clave:
+- FORTRAN: cálculo científico
+- COBOL: aplicaciones empresariales
+- C: base de sistemas operativos
+- Java y Python: desarrollo moderno
+
+Sistemas operativos:
+- UNIX: base de sistemas modernos
+- Windows: adopción masiva
+- Linux: open source y servidores
+
+6. REDES E INTERNET
+
+ARPANET (1969) marca el inicio de redes interconectadas.
+
+Impactos:
+- Comunicación global
+- Transferencia de información
+- Aparición de servicios digitales
+
+La web (1990s):
+- Navegadores
+- Comercio electrónico
+- Plataformas digitales
+
+7. COMPUTACIÓN MODERNA
+
+Cloud Computing:
+- Infraestructura distribuida
+- Escalabilidad
+
+Big Data:
+- Análisis de grandes volúmenes de datos
+
+Inteligencia Artificial:
+- Machine Learning
+- Automatización cognitiva
+
+Ciberseguridad:
+- Protección de datos
+- Gestión de riesgos
+
+8. TENDENCIAS FUTURAS
+
+- Computación cuántica: procesamiento exponencial
+- Edge computing: procesamiento local
+- Automatización avanzada
+- Integración humano-máquina
+
+CONCLUSIÓN
+
+La computación ha evolucionado de herramientas mecánicas a sistemas inteligentes que transforman industrias completas. Su impacto es transversal y continuará expandiéndose en complejidad y alcance estratégico.

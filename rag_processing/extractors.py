@@ -330,6 +330,7 @@ class JsonStructureExtractor(StructureExtractor):
 
 
 class CiscoStructureExtractor(StructureExtractor):
+    SECTION_MARKER_RE = re.compile(r"^---\s*Cisco Section:\s*(.+?)\s*---$", re.IGNORECASE)
     BLOCK_PATTERNS = [
         ("interface", re.compile(r"^interface\s+(\S+)", re.IGNORECASE)),
         ("router", re.compile(r"^router\s+(.+)", re.IGNORECASE)),
@@ -354,6 +355,12 @@ class CiscoStructureExtractor(StructureExtractor):
         for line in lines:
             stripped = line.strip()
             if not stripped:
+                continue
+            section_match = self.SECTION_MARKER_RE.match(stripped)
+            if section_match:
+                if current_block:
+                    blocks.append(current_block)
+                    current_block = None
                 continue
             matched = False
             for block_type, pattern in self.BLOCK_PATTERNS:

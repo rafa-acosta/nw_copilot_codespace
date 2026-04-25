@@ -34,7 +34,7 @@ class TextFileLoader(BaseDataLoader):
         Args:
             cleaner: Optional TextCleaner instance. If None, creates default cleaner.
         """
-        self.cleaner = cleaner or TextCleaner()
+        self.cleaner = cleaner or TextCleaner.for_ocr_prose()
     
     def validate_source(self, source: str) -> bool:
         """

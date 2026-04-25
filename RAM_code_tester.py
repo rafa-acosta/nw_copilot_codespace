@@ -35,9 +35,9 @@ def loadFactory():
     from rag_data_ingestion import LoaderFactory
 
     files = [
-        (TESTING_FILES_DIR / "txt" / "gibson.txt", "text"),
-        (TESTING_FILES_DIR / "Word" / "EvMateo.docx", "docx"),
-        (TESTING_FILES_DIR / "Cisco" / "Cisco 3750 v2.txt", "cisco"),
+        (TESTING_FILES_DIR / "txt" / "historia_computacion_v2.txt", "text"),
+        (TESTING_FILES_DIR / "Word" / "historia_computacion_v2.docx", "docx"),
+        (TESTING_FILES_DIR / "PDF" / "historia_computacion_v2.pdf", "pdf"),
     ]
     result = [ ]
 
@@ -48,7 +48,10 @@ def loadFactory():
         clean_doc = CleanDocument.from_ingested(ingested)
         pipeline = DocumentPipeline(max_size=1200, overlap=150)
         chunks = pipeline.run(clean_doc)
-        result.append((file_type, len(chunks), chunks[0].metadata, chunks[0].content[:500]))
+        if chunks:
+            result.append((file_type, len(chunks), chunks[0].metadata, chunks[0].content[:2500]))
+        else:
+            result.append((file_type, 0, None, "[NO CHUNKS GENERATED]"))
 
     for file_type, num_chunks, metadata, content_sample in result:
         print(f"File type: {file_type}\n\n, Number of chunks: {num_chunks}\n\n, Metadata: {metadata}\n\n, Content sample:\n\n {content_sample}...\n\n")

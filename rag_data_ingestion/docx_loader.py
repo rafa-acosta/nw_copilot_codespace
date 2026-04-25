@@ -47,7 +47,7 @@ class DocxLoader(BaseDataLoader):
                 "Install with: pip install python-docx"
             )
         
-        self.cleaner = cleaner or TextCleaner()
+        self.cleaner = cleaner or TextCleaner.for_prose()
     
     def validate_source(self, source: str) -> bool:
         """

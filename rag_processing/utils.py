@@ -98,12 +98,43 @@ def chunk_units(
             if idx == 0:
                 overlapped.append(chunk)
                 continue
-            prev = overlapped[-1]
-            tail = prev[-overlap:] if len(prev) > overlap else prev
+            tail = _overlap_tail(chunks[idx - 1], overlap, delimiter)
             overlapped.append(f"{tail}{delimiter}{chunk}".strip())
         return overlapped
 
     return chunks
+
+
+def _overlap_tail(chunk: str, overlap: int, delimiter: str) -> str:
+    if overlap <= 0 or len(chunk) <= overlap:
+        return chunk
+
+    units = [unit.strip() for unit in chunk.split(delimiter) if unit.strip()]
+    if len(units) <= 1:
+        return _trim_to_word_boundary(chunk, overlap)
+
+    selected: List[str] = []
+    selected_len = 0
+    for unit in reversed(units):
+        projected_len = selected_len + len(unit) + (len(delimiter) if selected else 0)
+        if selected and projected_len > overlap:
+            break
+        if not selected and len(unit) > overlap:
+            selected.append(_trim_to_word_boundary(unit, overlap))
+            break
+        selected.append(unit)
+        selected_len = projected_len
+    return delimiter.join(reversed(selected)).strip()
+
+
+def _trim_to_word_boundary(text: str, max_chars: int) -> str:
+    tail = text[-max_chars:].strip()
+    if not tail:
+        return ""
+    first_space = tail.find(" ")
+    if first_space > 0:
+        tail = tail[first_space + 1 :].strip()
+    return tail
 
 
 def slice_lines_with_indices(lines: List[str], start: int, end: int) -> Tuple[str, int, int]:

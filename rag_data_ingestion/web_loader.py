@@ -54,7 +54,7 @@ class WebLoader(BaseDataLoader):
                 "Install with: pip install requests beautifulsoup4"
             )
         
-        self.cleaner = cleaner or TextCleaner()
+        self.cleaner = cleaner or TextCleaner.for_prose()
         self.timeout = timeout
         self.verify_ssl = verify_ssl
     

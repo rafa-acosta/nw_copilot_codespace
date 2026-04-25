@@ -37,7 +37,7 @@ class CiscoConfigLoader(BaseDataLoader):
         Args:
             cleaner: Optional TextCleaner instance.
         """
-        self.cleaner = cleaner or TextCleaner()
+        self.cleaner = cleaner or TextCleaner.for_network_config()
     
     def validate_source(self, source: str) -> bool:
         """
@@ -113,7 +113,7 @@ class CiscoConfigLoader(BaseDataLoader):
         """
         text_parts = []
         for section_name, section_content in sections.items():
-            text_parts.append(f"\n=== {section_name} ===\n")
+            text_parts.append(f"\n--- Cisco Section: {section_name} ---\n")
             text_parts.append(section_content)
         
         return '\n'.join(text_parts)

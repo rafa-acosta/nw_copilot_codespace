@@ -55,7 +55,7 @@ class PDFLoader(BaseDataLoader):
         if PyPDF2 is None:
             raise ImportError("PyPDF2 is required for PDF loading. Install with: pip install PyPDF2")
         
-        self.cleaner = cleaner or TextCleaner()
+        self.cleaner = cleaner or TextCleaner.for_ocr_prose()
     
     def validate_source(self, source: str) -> bool:
         """

@@ -35,7 +35,7 @@ class JSONLoader(BaseDataLoader):
         Args:
             cleaner: Optional TextCleaner instance.
         """
-        self.cleaner = cleaner or TextCleaner()
+        self.cleaner = cleaner or TextCleaner.for_structured_data()
     
     def validate_source(self, source: str) -> bool:
         """
