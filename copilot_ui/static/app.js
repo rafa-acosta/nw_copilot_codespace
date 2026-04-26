@@ -38,6 +38,7 @@ const embeddingModelCustom = document.getElementById("embedding-model-custom");
 const ollamaStatus = document.getElementById("ollama-status");
 
 const activeSourceTypes = new Set();
+const expandedCitationMessages = new Set();
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -104,7 +105,8 @@ function renderDocuments() {
   }
 }
 
-function renderMessages() {
+function renderMessages({ preserveScroll = false } = {}) {
+  const previousScrollTop = chatScroll.scrollTop;
   messageList.innerHTML = "";
   const template = document.getElementById("message-template");
   const citationTemplate = document.getElementById("citation-template");
@@ -160,8 +162,25 @@ function renderMessages() {
       renderRagasResults(ragasResults, message.meta?.ragas);
     }
 
+    const citations = message.citations || [];
+    const citationToggle = fragment.querySelector(".citation-toggle");
     const citationList = fragment.querySelector(".citation-list");
-    for (const citation of message.citations || []) {
+    const citationsExpanded = expandedCitationMessages.has(message.message_id);
+    if (citations.length) {
+      citationToggle.hidden = false;
+      citationToggle.textContent = `${citationsExpanded ? "Hide" : "Show"} sources (${citations.length})`;
+      citationToggle.setAttribute("aria-expanded", String(citationsExpanded));
+      citationToggle.addEventListener("click", () => {
+        if (expandedCitationMessages.has(message.message_id)) {
+          expandedCitationMessages.delete(message.message_id);
+        } else {
+          expandedCitationMessages.add(message.message_id);
+        }
+        renderMessages({ preserveScroll: true });
+      });
+      citationList.hidden = !citationsExpanded;
+    }
+    for (const citation of citations) {
       const citationFragment = citationTemplate.content.cloneNode(true);
       citationFragment.querySelector(".citation-label").textContent = citation.label;
       citationFragment.querySelector(".citation-score").textContent = citation.score.toFixed(3);
@@ -172,7 +191,7 @@ function renderMessages() {
     messageList.appendChild(fragment);
   }
 
-  chatScroll.scrollTop = chatScroll.scrollHeight;
+  chatScroll.scrollTop = preserveScroll ? previousScrollTop : chatScroll.scrollHeight;
 }
 
 function renderRagasResults(container, ragas) {

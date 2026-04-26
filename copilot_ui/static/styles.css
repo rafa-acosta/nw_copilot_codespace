@@ -23,6 +23,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html {
   height: 100%;
 }
@@ -584,6 +588,23 @@ select,
   color: var(--muted);
   font-size: 0.82rem;
   line-height: 1.35;
+}
+
+.citation-toggle {
+  margin-top: 10px;
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.citation-toggle::before {
+  content: ">";
+  display: inline-block;
+  margin-right: 6px;
+  transition: transform 0.16s ease;
+}
+
+.citation-toggle[aria-expanded="true"]::before {
+  transform: rotate(90deg);
 }
 
 .citation-card {
