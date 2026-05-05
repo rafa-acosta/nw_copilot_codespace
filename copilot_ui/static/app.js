@@ -131,8 +131,14 @@ function renderMessages({ preserveScroll = false } = {}) {
     if (message.meta?.retrieval_mode) {
       metaParts.push(message.meta.retrieval_mode.toUpperCase());
     }
+    if (message.meta?.total_latency_ms) {
+      metaParts.push(`total ${formatSeconds(message.meta.total_latency_ms)}`);
+    }
     if (message.meta?.latency_ms) {
-      metaParts.push(`${Number(message.meta.latency_ms).toFixed(1)} ms`);
+      metaParts.push(`retrieval ${Number(message.meta.latency_ms).toFixed(1)} ms`);
+    }
+    if (message.meta?.generation_latency_ms) {
+      metaParts.push(`generation ${formatSeconds(message.meta.generation_latency_ms)}`);
     }
     if (message.meta?.result_count !== undefined) {
       metaParts.push(`${message.meta.result_count} result(s)`);
@@ -192,6 +198,11 @@ function renderMessages({ preserveScroll = false } = {}) {
   }
 
   chatScroll.scrollTop = preserveScroll ? previousScrollTop : chatScroll.scrollHeight;
+}
+
+function formatSeconds(milliseconds) {
+  const seconds = Number(milliseconds || 0) / 1000;
+  return `${seconds.toFixed(seconds >= 10 ? 1 : 2)} s`;
 }
 
 function renderRagasResults(container, ragas) {
@@ -632,18 +643,31 @@ async function sendMessage() {
   chatInput.value = "";
   autoresizeTextarea();
 
-  await mutate(
-    "/api/chat",
-    {
-      message,
-      mode: modeSelect.value,
-      domain: domainSelect.value,
-      top_k: Number(topKRange.value),
-      source_types: Array.from(activeSourceTypes),
-    },
-    "Answer ready.",
-    "Searching indexed documents..."
-  );
+  const startedAt = performance.now();
+  const updateElapsedStatus = () => {
+    setStatus(`Searching indexed documents... ${formatSeconds(performance.now() - startedAt)}`);
+  };
+  updateElapsedStatus();
+  const timerId = window.setInterval(updateElapsedStatus, 1000);
+
+  try {
+    const payload = await api("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        message,
+        mode: modeSelect.value,
+        domain: domainSelect.value,
+        top_k: Number(topKRange.value),
+        source_types: Array.from(activeSourceTypes),
+      }),
+    });
+    applyState(payload.state);
+    setStatus(`${payload.message || "Answer ready."} Took ${formatSeconds(performance.now() - startedAt)}.`);
+  } catch (error) {
+    setStatus(error.message, true);
+  } finally {
+    window.clearInterval(timerId);
+  }
 }
 
 function autoresizeTextarea() {

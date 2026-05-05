@@ -7,6 +7,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 import threading
+from time import perf_counter
 from uuid import uuid4
 
 from copilot_ui.answers import AnswerGenerator, GroundedAnswerGenerator, OllamaAnswerGenerator
@@ -229,6 +230,7 @@ class CopilotApplicationService:
             return self._snapshot_locked()
 
     def ask(self, message: str, options: QueryOptions | None = None) -> AppSnapshot:
+        request_started = perf_counter()
         options = options or QueryOptions()
         user_message = ChatMessage(role="user", content=message.strip())
 
@@ -274,13 +276,18 @@ class CopilotApplicationService:
                     domain_filter_applied=route.filter_applied,
                 )
             )
+            generation_started = perf_counter()
             generated = self.answer_generator.generate(message, retrieval_response)
+            generation_ms = (perf_counter() - generation_started) * 1000
+            total_ms = (perf_counter() - request_started) * 1000
             assistant_message = ChatMessage(
                 role="assistant",
                 content=generated.content,
                 citations=generated.citations,
                 meta={
                     **generated.meta,
+                    "generation_latency_ms": generation_ms,
+                    "total_latency_ms": total_ms,
                     "source_counts": self._summarize_sources(retrieval_response),
                 },
             )

@@ -13,34 +13,22 @@ hostname GOLDEN_ROUTER
 !
 !
 !
-vrf definition Mgmt-intf
- !
- address-family ipv4
- exit-address-family
- !
- address-family ipv6
- exit-address-family
-!
-card type e1 0 1
-logging count
-logging buffered 500000
-enable secret 5 132465789
 !
 aaa new-model
 !
 !
 !
-aaa group server tacacs+ DXC-GNTA-TACACS
- server name DXC-GNTA-TACACS-03
- server name DXC-GNTA-TACACS-04
+aaa group server tacacs+ COMPANY-GNTA-TACACS
+ server name COMPANY-GNTA-TACACS-03
+ server name COMPANY-GNTA-TACACS-04
 !
 aaa authentication password-prompt LOCAL_PASS:
 aaa authentication username-prompt Local_User:
-aaa authentication login default group TACACSServerGroup local
-aaa authentication enable default group TACACSServerGroup enable
-aaa accounting exec default start-stop group TACACSServerGroup
+aaa authentication login default group COMPANY-GNTA-TACACS local
+aaa authentication enable default group COMPANY-GNTA-TACACS enable
+aaa accounting exec default start-stop group COMPANY-GNTA-TACACS
 aaa accounting commands 1 default start-stop group tacacs+
-aaa accounting commands 15 default start-stop group TACACSServerGroup
+aaa accounting commands 15 default start-stop group COMPANY-GNTA-TACACS
 !
 !
 !
@@ -55,7 +43,7 @@ clock summer-time CDT recurring
 !
 
 no ip domain lookup
-ip domain name dxc.com
+ip domain name COMPANY.com
 !
 !
 !
@@ -109,7 +97,7 @@ license udi pid ISR4451-X/K9 sn FOC211855AD
 spanning-tree extend system-id
 !
 username Net0psCR20 privilege 15 secret 5 $1$A4Cd$PPqeNalpGIZb19q6SkHmF.
-username DXCadmin privilege 15 secret 5 $1$LY/J$5vRRi9dqTrIFGfoOw45XJ1
+username COMPANYadmin privilege 15 secret 5 $1$LY/J$5vRRi9dqTrIFGfoOw45XJ1
 username tcore privilege 15 secret 5 $1$fMy8$v9HEmUCcFyX47JjGR5cK71
 !
 redundancy
@@ -346,12 +334,12 @@ ip route 10.139.49.0 255.255.255.0 187.219.162.65 name SURLEON
 ip route 10.149.125.32 255.255.255.252 187.219.162.65 name Underlay_MPLS_URU
 ip route 131.150.180.0 255.255.254.0 10.120.186.237 name Route_to_Triara_LAN
 ip route 131.150.196.0 255.255.254.0 10.120.186.237 name Route_to_Triara_LAN
-ip route 138.35.0.0 255.255.0.0 10.120.186.237 name Route_to_DXC_Tools
+ip route 138.35.0.0 255.255.0.0 10.120.186.237 name Route_to_COMPANY_Tools
 ip route 138.35.219.99 255.255.255.255 Null0
 ip route 138.35.219.101 255.255.255.255 Null0
-ip route 145.47.102.0 255.255.255.0 10.120.186.237 name Route_to_DXC_Tools
-ip route 148.91.82.0 255.255.254.0 10.120.186.237 name Route_to_DXC_Tools
-ip route 148.91.92.0 255.255.254.0 10.120.186.237 name Route_to_DXC_Tools
+ip route 145.47.102.0 255.255.255.0 10.120.186.237 name Route_to_COMPANY_Tools
+ip route 148.91.82.0 255.255.254.0 10.120.186.237 name Route_to_COMPANY_Tools
+ip route 148.91.92.0 255.255.254.0 10.120.186.237 name Route_to_COMPANY_Tools
 ip route 172.29.0.0 255.255.0.0 10.120.186.237 name Route_to_FEMSA_MTY
 ip route 191.100.208.0 255.255.248.0 10.120.186.237 name Route_to_Triara_LAN
 ip route 192.168.52.0 255.255.254.0 10.120.186.237 name Route_to_FEMSA_MTY
@@ -391,7 +379,7 @@ ip access-list standard ACL_KOF_Default_Route_Without_Community_TAG
  remark --- Advertise Default Route In National AS8151 ---
  permit 0.0.0.0
 !
-ip access-list extended ACL-Access-VTY-DXC
+ip access-list extended ACL-Access-VTY-COMPANY
  remark *** ACL for SSH CLI Access - Coca Cola Femsa ***
  permit ip host 10.120.186.233 any
  permit ip host 10.120.186.238 any
@@ -2608,7 +2596,7 @@ access-list 97 permit 187.173.113.16 0.0.0.15
 access-list 99 permit 10.122.122.86
 access-list 99 permit 10.121.19.243
 access-list 99 permit 10.121.19.244
-access-list 99 remark *** DXC GNTA SNMP Access ***
+access-list 99 remark *** COMPANY GNTA SNMP Access ***
 access-list 99 permit 138.35.216.0 0.0.7.255
 access-list 99 remark GNTA SNMP Access
 access-list 99 permit 207.169.17.0 0.0.0.255
@@ -2636,11 +2624,11 @@ route-map BLACK deny 5
 route-map BLACK permit 10
 !
 snmp-server group Grsnmpv3CAP v3 priv read CapgeminiVieW3 access 93
-snmp-server group Grsnmpv3DXC v3 priv read DXCKOFvieW3 access 99
+snmp-server group Grsnmpv3COMPANY v3 priv read COMPANYKOFvieW3 access 99
 snmp-server group Grsnmpv3TMX v3 priv read TelmexVieW3 access 97
-snmp-server view DXCKOFvieW3 iso included
-snmp-server view DXCKOFvieW3 mib-2 included
-snmp-server view DXCKOFvieW3 system included
+snmp-server view COMPANYKOFvieW3 iso included
+snmp-server view COMPANYKOFvieW3 mib-2 included
+snmp-server view COMPANYKOFvieW3 system included
 snmp-server view TelmexVieW3 iso included
 snmp-server view TelmexVieW3 mib-2 included
 snmp-server view TelmexVieW3 system included
@@ -2653,7 +2641,7 @@ snmp-server view CapgeminiVieW3 interfaces included
 snmp-server view CapgeminiVieW3 cisco included
 snmp-server community GN0CR3AD RO 99
 snmp-server trap-source GigabitEthernet0/0/1
-snmp-server contact DXC Operations @ +55-11-4348-6684 (alterar para numero do GNOC)
+snmp-server contact COMPANY Operations @ +55-11-4348-6684 (alterar para numero do GNOC)
 snmp-server system-shutdown
 snmp-server enable traps snmp authentication linkdown linkup coldstart warmstart
 snmp-server enable traps tty
@@ -2668,7 +2656,7 @@ snmp-server enable traps bgp
 snmp-server enable traps vtp
 snmp-server enable traps vlancreate
 snmp-server enable traps vlandelete
-snmp-server host 138.35.6.135 version 3 priv DxCFEMSA 
+snmp-server host 138.35.6.135 version 3 priv COMPANYFEMSA 
 snmp-server host 138.35.6.135 GN0CR3AD 
 snmp ifmib ifindex persist
 !
@@ -2679,10 +2667,10 @@ tacacs server TACACSServer1
 tacacs server TACACSServer2
  address ipv4 138.35.223.100
  key 7 15380738543A602E3C247E21
-tacacs server DXC-GNTA-TACACS-03
+tacacs server COMPANY-GNTA-TACACS-03
  key 7 062C03151C5E421311005908
  timeout 5
-tacacs server DXC-GNTA-TACACS-04
+tacacs server COMPANY-GNTA-TACACS-04
  key 7 002E1F32544B400C1B36074D
  timeout 5
 !
@@ -2812,12 +2800,12 @@ privilege exec level 0 show
 banner motd ^CC
 *******************************************************************
 Access to this computer system and associated network, computer
-resources, or data is restricted to those authorized by DXC.
+resources, or data is restricted to those authorized by COMPANY.
 This computer and related networks, resources or data may only be
-used for business purposes of DXC and its customers. Use by
+used for business purposes of COMPANY and its customers. Use by
 unauthorized individual or for an unauthorized purpose is a
 violation of Federal and/or State law. Violators will be prosecuted.
-For technical assistance call DXC Operations @ +55-11-4348-6684
+For technical assistance call COMPANY Operations @ +55-11-4348-6684
 (alterar para numero do GNOC).
 ********************************************************************^C
 !
