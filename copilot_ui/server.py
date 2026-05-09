@@ -48,14 +48,31 @@ class CopilotRequestHandler(BaseHTTPRequestHandler):
             if route in {"/", "/index.html"}:
                 self._serve_static("index.html", "text/html; charset=utf-8")
                 return
+            if route == "/chunks.html":
+                self._serve_static("chunks.html", "text/html; charset=utf-8")
+                return
             if route == "/static/styles.css":
                 self._serve_static("styles.css", "text/css; charset=utf-8")
                 return
             if route == "/static/app.js":
                 self._serve_static("app.js", "application/javascript; charset=utf-8")
                 return
+            if route == "/static/chunks.js":
+                self._serve_static("chunks.js", "application/javascript; charset=utf-8")
+                return
             if route == "/api/state":
                 _json_response(self, HTTPStatus.OK, {"ok": True, "state": self.service.snapshot().to_dict()})
+                return
+            if route == "/api/chunks":
+                limit = int(query.get("limit", ["200"])[0])
+                offset = int(query.get("offset", ["0"])[0])
+                document_id = query.get("document_id", [""])[0]
+                payload = self.service.list_indexed_chunks(
+                    document_id=document_id,
+                    limit=limit,
+                    offset=offset,
+                )
+                _json_response(self, HTTPStatus.OK, {"ok": True, **payload})
                 return
             if route == "/api/health":
                 _json_response(self, HTTPStatus.OK, {"ok": True})

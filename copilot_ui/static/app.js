@@ -89,17 +89,17 @@ function renderDocuments() {
     return;
   }
 
-  for (const document of state.documents) {
+  for (const indexedDocument of state.documents) {
     const fragment = template.content.cloneNode(true);
-    fragment.querySelector(".document-name").textContent = document.filename;
-    const domainLabel = document.domain
-      ? `${document.domain} ${Math.round((Number(document.domain_confidence) || 0) * 100)}%`
+    fragment.querySelector(".document-name").textContent = indexedDocument.filename;
+    const domainLabel = indexedDocument.domain
+      ? `${indexedDocument.domain} ${Math.round((Number(indexedDocument.domain_confidence) || 0) * 100)}%`
       : "unclassified";
-    fragment.querySelector(".document-type").textContent = `${document.source_type} • ${domainLabel}`;
-    fragment.querySelector(".document-chunks").textContent = `${document.chunk_count} chunk(s)`;
-    fragment.querySelector(".document-item").title = document.domain_reason || "";
+    fragment.querySelector(".document-type").textContent = `${indexedDocument.source_type} • ${domainLabel}`;
+    fragment.querySelector(".document-chunks").textContent = `${indexedDocument.chunk_count} chunk(s)`;
+    fragment.querySelector(".document-item").title = indexedDocument.domain_reason || "";
     fragment.querySelector(".remove-document-button").addEventListener("click", async () => {
-      await mutate("/api/documents/remove", { document_id: document.document_id }, "Document removed.");
+      await mutate("/api/documents/remove", { document_id: indexedDocument.document_id }, "Document removed.");
     });
     documentList.appendChild(fragment);
   }

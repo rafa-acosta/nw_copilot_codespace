@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NW Copilot Chunks</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="chunks-page">
+    <header class="chunks-header">
+      <div>
+        <h1>Readable chunks</h1>
+        <p id="chunks-summary">Loading indexed content...</p>
+      </div>
+      <a class="secondary-button" href="/">Back to Copilot</a>
+    </header>
+
+    <section class="chunks-toolbar">
+      <label class="field">
+        <span>Document</span>
+        <select id="chunk-document-select">
+          <option value="">All documents</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Search inside chunks</span>
+        <input id="chunk-search-input" class="model-custom-input" type="search" placeholder="Filter visible chunks...">
+      </label>
+    </section>
+
+    <section id="chunks-empty-state" class="empty-state">
+      <div class="empty-card">
+        <h3>No chunks are indexed yet</h3>
+        <p>Load documents in the main Copilot page and return here to inspect the generated chunks.</p>
+      </div>
+    </section>
+
+    <section id="chunk-list" class="chunk-list"></section>
+  </main>
+
+  <template id="chunk-card-template">
+    <article class="chunk-card">
+      <div class="chunk-card-header">
+        <div>
+          <strong class="chunk-title"></strong>
+          <p class="chunk-subtitle"></p>
+        </div>
+        <span class="badge badge-soft chunk-type"></span>
+      </div>
+      <div class="chunk-metadata"></div>
+      <pre class="chunk-content"></pre>
+    </article>
+  </template>
+
+  <script src="/static/chunks.js"></script>
+</body>
+</html>

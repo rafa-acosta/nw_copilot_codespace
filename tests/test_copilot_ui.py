@@ -115,6 +115,24 @@ class CopilotApplicationServiceTests(unittest.TestCase):
         self.assertIn("hurricane evacuation procedures", inspection["records"][0]["document"])
         self.assertTrue(inspection["records"][0]["embedding"])
 
+    def test_list_indexed_chunks_returns_readable_content(self) -> None:
+        snapshot = self.service.add_uploaded_files(
+            [
+                encode_text_payload("notes.txt", "Project note about hurricane evacuation procedures."),
+                encode_text_payload("interfaces.txt", "Interface note about vlan 10 and trunk ports."),
+            ]
+        )
+
+        document_id = snapshot.documents[0].document_id
+        chunk_listing = self.service.list_indexed_chunks(document_id=document_id)
+
+        self.assertEqual(chunk_listing["total"], snapshot.documents[0].chunk_count)
+        self.assertEqual(len(chunk_listing["documents"]), 2)
+        self.assertTrue(chunk_listing["chunks"])
+        self.assertEqual(chunk_listing["chunks"][0]["document_id"], document_id)
+        self.assertIn("Project note", chunk_listing["chunks"][0]["content"])
+        self.assertIn("metadata", chunk_listing["chunks"][0])
+
     def test_ragas_evaluation_is_demand_only(self) -> None:
         class FakeRagasEvaluator:
             def __init__(self) -> None:

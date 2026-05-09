@@ -344,6 +344,44 @@ class CopilotApplicationService:
                 include_embeddings=include_embeddings,
             )
 
+    def list_indexed_chunks(
+        self,
+        *,
+        document_id: str | None = None,
+        limit: int = 200,
+        offset: int = 0,
+    ) -> dict[str, object]:
+        """Return readable indexed chunk content for the inspection page."""
+
+        with self._lock:
+            normalized_document_id = (document_id or "").strip()
+            records = [
+                record
+                for record in self._records
+                if not normalized_document_id or record.metadata.document_id == normalized_document_id
+            ]
+            safe_offset = max(0, offset)
+            safe_limit = max(1, limit)
+            page = records[safe_offset : safe_offset + safe_limit]
+
+            return {
+                "total": len(records),
+                "offset": safe_offset,
+                "limit": safe_limit,
+                "documents": [document.to_dict() for document in self._snapshot_locked().documents],
+                "chunks": [
+                    {
+                        "chunk_id": record.metadata.chunk_id,
+                        "document_id": record.metadata.document_id,
+                        "filename": record.metadata.filename,
+                        "source_type": record.metadata.source_type,
+                        "metadata": record.metadata.as_dict(),
+                        "content": record.text,
+                    }
+                    for record in page
+                ],
+            }
+
     def last_upload_message(self) -> str | None:
         with self._lock:
             return self._last_upload_message
