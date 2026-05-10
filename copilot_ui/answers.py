@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 import re
 from typing import Sequence
 
-from copilot_ui.models import ChatCitation, GeneratedAnswer
+from copilot_ui.models import ChatCitation, ConversationMemory, GeneratedAnswer
 from copilot_ui.ollama import OllamaClient
 from domain_routing import prompt_profile_for
 from retrieval.models import RetrievalResponse, RetrievedChunk
@@ -17,7 +17,13 @@ class AnswerGenerator(ABC):
     """Transforms retrieval results into a user-facing assistant answer."""
 
     @abstractmethod
-    def generate(self, query: str, retrieval_response: RetrievalResponse) -> GeneratedAnswer:
+    def generate(
+        self,
+        query: str,
+        retrieval_response: RetrievalResponse,
+        *,
+        memory: ConversationMemory | None = None,
+    ) -> GeneratedAnswer:
         raise NotImplementedError
 
     @staticmethod
@@ -34,7 +40,14 @@ class AnswerGenerator(ABC):
 class GroundedAnswerGenerator(AnswerGenerator):
     """Local extractive answer synthesizer with source citations."""
 
-    def generate(self, query: str, retrieval_response: RetrievalResponse) -> GeneratedAnswer:
+    def generate(
+        self,
+        query: str,
+        retrieval_response: RetrievalResponse,
+        *,
+        memory: ConversationMemory | None = None,
+    ) -> GeneratedAnswer:
+        memory_meta = {"conversation_memory": memory.to_dict()} if memory is not None else {}
         if not retrieval_response.results:
             scoped_label = (
                 f" in the selected {retrieval_response.domain} documents"
@@ -50,6 +63,7 @@ class GroundedAnswerGenerator(AnswerGenerator):
                     "retrieval_mode": retrieval_response.retrieval_mode,
                     "latency_ms": retrieval_response.timings.total_ms,
                     "result_count": 0,
+                    **memory_meta,
                     **self._domain_meta(retrieval_response),
                 },
             )
@@ -78,6 +92,7 @@ class GroundedAnswerGenerator(AnswerGenerator):
                 "retrieval_mode": retrieval_response.retrieval_mode,
                 "latency_ms": retrieval_response.timings.total_ms,
                 "result_count": retrieval_response.top_k_results,
+                **memory_meta,
                 **self._domain_meta(retrieval_response),
             },
         )
@@ -144,9 +159,15 @@ class OllamaAnswerGenerator(GroundedAnswerGenerator):
         self.client = client or OllamaClient.from_env()
         self.max_context_chunks = max_context_chunks
 
-    def generate(self, query: str, retrieval_response: RetrievalResponse) -> GeneratedAnswer:
+    def generate(
+        self,
+        query: str,
+        retrieval_response: RetrievalResponse,
+        *,
+        memory: ConversationMemory | None = None,
+    ) -> GeneratedAnswer:
         if not retrieval_response.results:
-            return super().generate(query, retrieval_response)
+            return super().generate(query, retrieval_response, memory=memory)
 
         selected_results = retrieval_response.results[: self.max_context_chunks]
         citations = tuple(self._to_citation(query, result) for result in selected_results)
@@ -167,7 +188,7 @@ class OllamaAnswerGenerator(GroundedAnswerGenerator):
                 },
                 {
                     "role": "user",
-                    "content": self._build_prompt(query, selected_results, citations, retrieval_response),
+                    "content": self._build_prompt(query, selected_results, citations, retrieval_response, memory),
                 },
             )
         )
@@ -182,6 +203,7 @@ class OllamaAnswerGenerator(GroundedAnswerGenerator):
                 "result_count": retrieval_response.top_k_results,
                 "answer_provider": "ollama",
                 "answer_model": self.client.chat_model,
+                **({"conversation_memory": memory.to_dict()} if memory is not None else {}),
                 **self._domain_meta(retrieval_response),
             },
         )
@@ -192,11 +214,22 @@ class OllamaAnswerGenerator(GroundedAnswerGenerator):
         results: Sequence[RetrievedChunk],
         citations: Sequence[ChatCitation],
         retrieval_response: RetrievalResponse,
+        memory: ConversationMemory | None = None,
     ) -> str:
         prompt_parts = [
             f"Question: {query}",
             "",
         ]
+
+        if memory is not None and (memory.recent_user_questions or memory.topic_terms):
+            prompt_parts.append("Conversation memory:")
+            if memory.summary:
+                prompt_parts.append(f"Topics discussed: {memory.summary}")
+            if memory.recent_user_questions:
+                prompt_parts.append("Recent user questions:")
+                for index, question in enumerate(memory.recent_user_questions[-5:], start=1):
+                    prompt_parts.append(f"{index}. {question}")
+            prompt_parts.append("")
 
         if retrieval_response.domain:
             prompt_parts.extend(

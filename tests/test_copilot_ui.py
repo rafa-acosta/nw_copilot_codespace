@@ -9,7 +9,7 @@ import requests
 
 from copilot_ui.answers import GroundedAnswerGenerator, OllamaAnswerGenerator
 from copilot_ui.embeddings import HashingEmbeddingModel, OllamaEmbeddingModel
-from copilot_ui.models import UploadedFilePayload
+from copilot_ui.models import ConversationMemory, UploadedFilePayload
 from copilot_ui.ollama import FIXED_OLLAMA_MODEL, OllamaClient
 from copilot_ui.services import CopilotApplicationService, QueryOptions
 from evaluation import RagasEvaluationResult, RagasEvaluator, RagasEvaluatorConfig, RagasMetricResult
@@ -77,6 +77,26 @@ class CopilotApplicationServiceTests(unittest.TestCase):
         self.assertFalse(updated.documents)
         self.assertEqual(updated.chunk_count, 0)
         self.assertFalse(updated.retrieval_ready)
+
+    def test_memory_question_answers_without_indexed_documents(self) -> None:
+        self.service.ask("What did Gottfried Leibniz improve?")
+
+        state = self.service.ask("What was my last question?")
+
+        self.assertEqual(state.messages[-1].role, "assistant")
+        self.assertIn('Your last question was: "What did Gottfried Leibniz improve?"', state.messages[-1].content)
+        self.assertEqual(state.messages[-1].meta["answer_provider"], "conversation_memory")
+        self.assertIn("gottfried", state.messages[-1].meta["conversation_memory"]["topic_terms"])
+
+    def test_memory_question_summarizes_previous_topics(self) -> None:
+        self.service.ask("What did Gottfried Leibniz improve?")
+        self.service.ask("How did cloud computing change infrastructure?")
+
+        state = self.service.ask("What topics have we discussed?")
+
+        self.assertIn("Topics discussed so far:", state.messages[-1].content)
+        self.assertIn("leibniz", state.messages[-1].content)
+        self.assertIn("cloud", state.messages[-1].content)
 
     def test_upload_keeps_text_files_when_pdf_dependency_is_missing(self) -> None:
         class MissingPdfLoader:
@@ -531,7 +551,14 @@ class OllamaIntegrationTests(unittest.TestCase):
         client = FakeChatClient()
         generator = OllamaAnswerGenerator(client=client)
 
-        answer = generator.generate("What interface is up?", retrieval_response)
+        answer = generator.generate(
+            "What interface is up?",
+            retrieval_response,
+            memory=ConversationMemory(
+                recent_user_questions=("What did Gottfried Leibniz improve?",),
+                topic_terms=("gottfried", "leibniz"),
+            ),
+        )
 
         self.assertIn("GigabitEthernet1/0/24", answer.content)
         self.assertNotIn("<think>", answer.content)
@@ -540,6 +567,8 @@ class OllamaIntegrationTests(unittest.TestCase):
         self.assertEqual(answer.citations[0].label, "device.json • device.interfaces")
         self.assertEqual(client.messages[0]["role"], "system")
         self.assertIn("Question: What interface is up?", client.messages[1]["content"])
+        self.assertIn("Conversation memory:", client.messages[1]["content"])
+        self.assertIn("What did Gottfried Leibniz improve?", client.messages[1]["content"])
 
     def test_ollama_answer_generator_applies_domain_specific_prompting(self) -> None:
         class FakeChatClient:

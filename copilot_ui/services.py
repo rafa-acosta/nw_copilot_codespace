@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import base64
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
+import re
 import threading
 from time import perf_counter
+import unicodedata
 from uuid import uuid4
 
 from copilot_ui.answers import AnswerGenerator, GroundedAnswerGenerator, OllamaAnswerGenerator
@@ -16,6 +18,8 @@ from copilot_ui.loaders import load_document
 from copilot_ui.models import (
     AppSnapshot,
     ChatMessage,
+    ConversationMemory,
+    GeneratedAnswer,
     IndexedDocument,
     IndexedDocumentSummary,
     OllamaSettings,
@@ -40,6 +44,57 @@ class QueryOptions:
     domain: str = "auto"
     source_types: tuple[str, ...] = ()
     debug: bool = False
+
+
+MEMORY_QUESTION_PATTERNS = (
+    "last question",
+    "previous question",
+    "what did i ask",
+    "what have i asked",
+    "what was my question",
+    "what were we discussing",
+    "what topics have we discussed",
+    "what topics did we discuss",
+    "topics discussed",
+    "ultima pregunta",
+    "pregunta anterior",
+    "que pregunte",
+    "que he preguntado",
+    "que temas hemos",
+    "que temas discutimos",
+    "temas discutidos",
+    "hemos hablado",
+)
+
+MEMORY_TOPIC_STOPWORDS = {
+    "about",
+    "after",
+    "and",
+    "answer",
+    "asked",
+    "can",
+    "could",
+    "did",
+    "does",
+    "for",
+    "from",
+    "have",
+    "how",
+    "last",
+    "please",
+    "pregunta",
+    "preguntado",
+    "pregunte",
+    "que",
+    "the",
+    "this",
+    "what",
+    "when",
+    "where",
+    "which",
+    "with",
+    "you",
+}
 
 
 class CopilotApplicationService:
@@ -232,10 +287,30 @@ class CopilotApplicationService:
     def ask(self, message: str, options: QueryOptions | None = None) -> AppSnapshot:
         request_started = perf_counter()
         options = options or QueryOptions()
-        user_message = ChatMessage(role="user", content=message.strip())
+        normalized_message = message.strip()
+        user_message = ChatMessage(role="user", content=normalized_message)
 
         with self._lock:
+            memory = self._build_conversation_memory_locked()
             self._messages.append(user_message)
+
+            if self._is_memory_question(normalized_message):
+                generated = self._generate_memory_answer(normalized_message, memory)
+                total_ms = (perf_counter() - request_started) * 1000
+                self._messages.append(
+                    ChatMessage(
+                        role="assistant",
+                        content=generated.content,
+                        citations=generated.citations,
+                        meta={
+                            **generated.meta,
+                            "generation_latency_ms": total_ms,
+                            "total_latency_ms": total_ms,
+                            "source_counts": {},
+                        },
+                    )
+                )
+                return self._snapshot_locked()
 
             if self._retrieval_service is None:
                 self._messages.append(
@@ -256,7 +331,7 @@ class CopilotApplicationService:
                 self.domain_router.validate_domain(manual_domain)
 
             route = self.domain_router.route_query(
-                message,
+                normalized_message,
                 manual_domain=manual_domain,
                 available_domain_counts=self._available_domain_counts_locked(),
             )
@@ -264,7 +339,7 @@ class CopilotApplicationService:
 
             retrieval_response = self._retrieval_service.retrieve(
                 RetrievalRequest(
-                    query=message,
+                    query=normalized_message,
                     top_k=options.top_k,
                     mode=RetrievalMode(options.mode),
                     filters=filters,
@@ -277,7 +352,7 @@ class CopilotApplicationService:
                 )
             )
             generation_started = perf_counter()
-            generated = self.answer_generator.generate(message, retrieval_response)
+            generated = self.answer_generator.generate(normalized_message, retrieval_response, memory=memory)
             generation_ms = (perf_counter() - generation_started) * 1000
             total_ms = (perf_counter() - request_started) * 1000
             assistant_message = ChatMessage(
@@ -295,7 +370,7 @@ class CopilotApplicationService:
                 assistant_message.meta["ragas_available"] = True
                 assistant_message.meta["ragas_evaluated"] = False
                 self._evaluation_payloads[assistant_message.message_id] = self._build_evaluation_payload(
-                    query=message,
+                    query=normalized_message,
                     response=generated.content,
                     retrieval_response=retrieval_response,
                 )
@@ -624,6 +699,85 @@ class CopilotApplicationService:
             return RagasEvaluator(config)
 
         return RagasEvaluator()
+
+    def _build_conversation_memory_locked(self) -> ConversationMemory:
+        questions = tuple(
+            message.content.strip()
+            for message in self._messages
+            if message.role == "user" and message.content.strip()
+        )
+        topic_counts: Counter[str] = Counter()
+        for question in questions:
+            if self._is_memory_question(question):
+                continue
+            topic_counts.update(self._topic_terms(question))
+
+        topic_terms = tuple(
+            term
+            for term, _count in sorted(topic_counts.items(), key=lambda item: (-item[1], item[0]))[:10]
+        )
+        return ConversationMemory(
+            recent_user_questions=questions[-8:],
+            topic_terms=topic_terms,
+        )
+
+    @staticmethod
+    def _generate_memory_answer(query: str, memory: ConversationMemory) -> GeneratedAnswer:
+        normalized_query = CopilotApplicationService._normalize_memory_text(query)
+        asks_for_last_question = any(
+            phrase in normalized_query
+            for phrase in (
+                "last question",
+                "previous question",
+                "what did i ask",
+                "what was my question",
+                "ultima pregunta",
+                "pregunta anterior",
+                "que pregunte",
+            )
+        )
+
+        if not memory.recent_user_questions:
+            content = "I do not have any earlier questions in this chat yet."
+        elif asks_for_last_question:
+            content = f'Your last question was: "{memory.last_user_question}"'
+            if memory.summary:
+                content = f"{content}\n\nTopics so far: {memory.summary}."
+        elif memory.summary:
+            recent = "\n".join(f"- {question}" for question in memory.recent_user_questions[-3:])
+            content = f"Topics discussed so far: {memory.summary}.\n\nRecent questions:\n{recent}"
+        else:
+            recent = "\n".join(f"- {question}" for question in memory.recent_user_questions[-3:])
+            content = f"I remember these recent questions:\n{recent}"
+
+        return GeneratedAnswer(
+            content=content,
+            meta={
+                "answer_provider": "conversation_memory",
+                "conversation_memory": memory.to_dict(),
+            },
+        )
+
+    @staticmethod
+    def _is_memory_question(query: str) -> bool:
+        normalized = CopilotApplicationService._normalize_memory_text(query)
+        return any(pattern in normalized for pattern in MEMORY_QUESTION_PATTERNS)
+
+    @staticmethod
+    def _topic_terms(query: str) -> tuple[str, ...]:
+        normalized = CopilotApplicationService._normalize_memory_text(query)
+        terms = re.findall(r"[a-z0-9][a-z0-9_-]{2,}", normalized)
+        return tuple(
+            term
+            for term in terms
+            if term not in MEMORY_TOPIC_STOPWORDS and not term.isdigit()
+        )
+
+    @staticmethod
+    def _normalize_memory_text(value: str) -> str:
+        decomposed = unicodedata.normalize("NFKD", value.casefold())
+        without_marks = "".join(character for character in decomposed if not unicodedata.combining(character))
+        return re.sub(r"\s+", " ", without_marks).strip()
 
     @staticmethod
     def _build_evaluation_payload(

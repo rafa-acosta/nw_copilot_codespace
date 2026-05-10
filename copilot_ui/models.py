@@ -120,6 +120,32 @@ class ChatMessage:
 
 
 @dataclass(slots=True)
+class ConversationMemory:
+    """Compact memory derived from the current chat transcript."""
+
+    recent_user_questions: tuple[str, ...] = ()
+    topic_terms: tuple[str, ...] = ()
+
+    @property
+    def last_user_question(self) -> str | None:
+        return self.recent_user_questions[-1] if self.recent_user_questions else None
+
+    @property
+    def summary(self) -> str:
+        if not self.topic_terms:
+            return ""
+        return ", ".join(self.topic_terms)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "recent_user_questions": list(self.recent_user_questions),
+            "last_user_question": self.last_user_question,
+            "topic_terms": list(self.topic_terms),
+            "summary": self.summary,
+        }
+
+
+@dataclass(slots=True)
 class GeneratedAnswer:
     """Answer generator output consumed by the GUI service."""
 
