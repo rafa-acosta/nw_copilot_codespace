@@ -3,6 +3,7 @@
 from .settings import (
     HybridConfig,
     KeywordRetrieverConfig,
+    MultiQueryConfig,
     ObservabilityConfig,
     QueryProcessingConfig,
     RetrievalConfig,
@@ -14,6 +15,7 @@ from .settings import (
 __all__ = [
     "HybridConfig",
     "KeywordRetrieverConfig",
+    "MultiQueryConfig",
     "ObservabilityConfig",
     "QueryProcessingConfig",
     "RetrievalConfig",

@@ -30,6 +30,10 @@ VOCABULARY = (
     "gigabitethernet1/0/24",
     "10.0.0.1",
     "device.interfaces[0].name",
+    "contract",
+    "agreement",
+    "invoice",
+    "bill",
 )
 
 
@@ -123,6 +127,19 @@ class RetrievalPipelineTests(unittest.TestCase):
                     tags=("network", "switch"),
                 ),
             ),
+            StoredChunk(
+                text="Invoice payment terms and contract service agreement renewal instructions.",
+                embedding=tuple(embed_text("invoice bill contract agreement")),
+                metadata=ChunkMetadata(
+                    document_id="doc-contract-1",
+                    source_type="docx",
+                    file_path="/data/docs/service-agreement.docx",
+                    filename="service-agreement.docx",
+                    chunk_id="chunk-contract-1",
+                    section="Billing",
+                    tags=("legal", "billing"),
+                ),
+            ),
         ]
 
         config = RetrievalConfig()
@@ -198,6 +215,93 @@ class RetrievalPipelineTests(unittest.TestCase):
             )
         )
         self.assertEqual(response.results[0].metadata["page_number"], 12)
+
+    def test_keyword_query_expansion_finds_synonym_match(self) -> None:
+        self.service.config.query_processing.enable_query_expansion = True
+        response = self.service.retrieve(
+            RetrievalRequest(
+                query="contrato de servicio",
+                mode=RetrievalMode.KEYWORD,
+                top_k=2,
+            )
+        )
+        self.assertEqual(response.results[0].chunk_id, "chunk-contract-1")
+        self.assertIn("contract", response.results[0].matched_terms)
+
+    def test_multi_query_dense_uses_expanded_variants(self) -> None:
+        self.service.config.query_processing.enable_query_expansion = True
+        self.service.config.multi_query.enabled = True
+
+        response = self.service.retrieve(
+            RetrievalRequest(
+                query="factura",
+                mode=RetrievalMode.DENSE,
+                top_k=2,
+                debug=True,
+            )
+        )
+
+        self.assertEqual(response.results[0].chunk_id, "chunk-contract-1")
+        self.assertIsNotNone(response.debug)
+        self.assertTrue(any("Multi-query variants used" in note for note in response.debug.notes))
+
+    def test_hybrid_reranks_keyword_exact_match_when_dense_misses_it(self) -> None:
+        records = [
+            StoredChunk(
+                text="Cloud Computing: infraestructura distribuida.",
+                embedding=(1.0, 0.0),
+                metadata=ChunkMetadata(
+                    document_id="doc-history",
+                    source_type="docx",
+                    filename="historia_computacion_v2.docx",
+                    chunk_id="chunk-cloud",
+                    section="Cloud Computing",
+                ),
+            ),
+            StoredChunk(
+                text="Durante la Segunda Guerra Mundial: Colossus descifrado de códigos.",
+                embedding=(1.0, 0.0),
+                metadata=ChunkMetadata(
+                    document_id="doc-history",
+                    source_type="docx",
+                    filename="historia_computacion_v2.docx",
+                    chunk_id="chunk-war",
+                    section="Durante la Segunda Guerra Mundial",
+                ),
+            ),
+            StoredChunk(
+                text="Gottfried Leibniz mejora estos sistemas incorporando multiplicación y división automática.",
+                embedding=(0.0, 1.0),
+                metadata=ChunkMetadata(
+                    document_id="doc-history",
+                    source_type="docx",
+                    filename="historia_computacion_v2.docx",
+                    chunk_id="chunk-leibniz",
+                    section="En el siglo XVII, se producen avances clave",
+                ),
+            ),
+        ]
+        config = RetrievalConfig()
+        config.observability.debug = True
+        service = build_retrieval_service(
+            records,
+            query_embedder=CallableQueryEmbedder(lambda _text: (1.0, 0.0), expected_dimension=2),
+            config=config,
+            chroma_path=f"{self.temp_dir.name}/chroma-keyword-rescue",
+        )
+
+        response = service.retrieve(
+            RetrievalRequest(
+                query="Que mejoró Gottfried Leibniz?",
+                mode=RetrievalMode.HYBRID,
+                top_k=2,
+                debug=True,
+            )
+        )
+
+        self.assertEqual(response.results[0].chunk_id, "chunk-leibniz")
+        self.assertIn("gottfried", response.results[0].matched_terms)
+        self.assertIn("keyword_term_match", response.results[0].applied_boosts)
 
 
 if __name__ == "__main__":

@@ -39,6 +39,7 @@ class ProcessedQuery:
     technical_terms: tuple[str, ...]
     quoted_phrases: tuple[str, ...]
     expansions: tuple[str, ...] = ()
+    variants: tuple[str, ...] = ()
     hints: QueryHints = field(default_factory=QueryHints)
 
 

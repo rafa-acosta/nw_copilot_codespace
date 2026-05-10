@@ -3,6 +3,7 @@
 from retrieval.config import (
     HybridConfig,
     KeywordRetrieverConfig,
+    MultiQueryConfig,
     ObservabilityConfig,
     QueryProcessingConfig,
     RetrievalConfig,
@@ -31,6 +32,7 @@ __all__ = [
     "HybridConfig",
     "KeywordRetrieverConfig",
     "MetadataFilterSpec",
+    "MultiQueryConfig",
     "NumericRange",
     "ObservabilityConfig",
     "ProcessedQuery",

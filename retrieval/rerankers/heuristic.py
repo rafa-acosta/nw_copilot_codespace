@@ -10,6 +10,45 @@ from retrieval.rerankers.base import Reranker
 from retrieval.utils import contains_term
 
 
+LOW_SIGNAL_TERMS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "como",
+    "cuál",
+    "cual",
+    "de",
+    "del",
+    "did",
+    "do",
+    "does",
+    "el",
+    "en",
+    "es",
+    "is",
+    "la",
+    "las",
+    "lo",
+    "los",
+    "me",
+    "para",
+    "por",
+    "que",
+    "qué",
+    "se",
+    "the",
+    "to",
+    "un",
+    "una",
+    "what",
+    "when",
+    "where",
+    "which",
+    "who",
+}
+
+
 class HeuristicReranker(Reranker):
     """Applies query-aware boosts using exact matches and metadata signals."""
 
@@ -40,6 +79,15 @@ class HeuristicReranker(Reranker):
             if exact_hits:
                 score += exact_hits * self.config.reranker.exact_phrase_boost * (1.0 + profile.exact_match_weight)
                 boosts.append("exact_phrase")
+
+            keyword_terms = self._meaningful_matched_terms(candidate.matched_terms)
+            if keyword_terms:
+                score += (
+                    len(keyword_terms)
+                    * self.config.reranker.keyword_term_boost
+                    * (1.0 + profile.exact_match_weight)
+                )
+                boosts.append("keyword_term_match")
 
             technical_hits = sum(1 for term in query.technical_terms if contains_term(search_text, term))
             if technical_hits:
@@ -120,3 +168,11 @@ class HeuristicReranker(Reranker):
                 boosts.append("cisco_match")
 
         return score, boosts
+
+    @staticmethod
+    def _meaningful_matched_terms(matched_terms: Sequence[str]) -> tuple[str, ...]:
+        return tuple(
+            term
+            for term in matched_terms
+            if len(term) >= 3 and term.casefold() not in LOW_SIGNAL_TERMS
+        )

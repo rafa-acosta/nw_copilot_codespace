@@ -3,9 +3,10 @@
   "query_processing": {
     "collapse_whitespace": true,
     "casefold_for_keywords": true,
-    "enable_query_expansion": false,
+    "enable_query_expansion": true,
     "preserve_quoted_phrases": true,
-    "minimum_token_length": 2
+    "minimum_token_length": 2,
+    "max_query_variants": 4
   },
   "vector": {
     "top_k": 10,
@@ -28,6 +29,13 @@
     "fusion_strategy": "weighted_sum",
     "reciprocal_rank_constant": 60,
     "candidate_pool_multiplier": 4
+  },
+  "multi_query": {
+    "enabled": true,
+    "max_queries": 4,
+    "candidate_pool_multiplier": 2,
+    "original_query_weight": 1.0,
+    "variant_query_weight": 0.82
   },
   "reranker": {
     "enabled": true,

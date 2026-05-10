@@ -107,4 +107,4 @@ class HybridRetriever(Retriever):
             )
 
         merged.sort(key=lambda candidate: candidate.score, reverse=True)
-        return merged[:top_k]
+        return merged[:candidate_pool_size]

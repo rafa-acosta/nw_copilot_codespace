@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Sequence
 
 from retrieval.config import RetrievalConfig
 from retrieval.embedders import QueryEmbedder
 from retrieval.models import (
+    ProcessedQuery,
     RetrievalDebugInfo,
     RetrievalMode,
     RetrievalRequest,
@@ -102,18 +104,32 @@ class RetrievalService:
         )
 
         with timer.measure("candidate_retrieval"):
-            candidates = self._retrieve_candidates(
-                processed_query,
-                mode=mode,
-                top_k=top_k,
-                query_embedding=query_embedding,
-                request=request,
-            )
+            if self.config.multi_query.enabled and processed_query.variants:
+                candidates = self._retrieve_multi_query_candidates(
+                    processed_query,
+                    mode=mode,
+                    top_k=top_k,
+                    query_embedding=query_embedding,
+                    request=request,
+                )
+            else:
+                candidates = self._retrieve_candidates(
+                    processed_query,
+                    mode=mode,
+                    top_k=top_k,
+                    query_embedding=query_embedding,
+                    request=request,
+                )
         trace_steps.append(
             RetrievalTraceStep(
                 name="candidate_retrieval",
                 duration_ms=timer.steps["candidate_retrieval"],
-                details={"candidate_count": len(candidates)},
+                details={
+                    "candidate_count": len(candidates),
+                    "query_variant_count": 1 + len(processed_query.variants)
+                    if self.config.multi_query.enabled
+                    else 1,
+                },
             )
         )
 
@@ -145,7 +161,7 @@ class RetrievalService:
                 dense_candidate_count=dense_count,
                 keyword_candidate_count=keyword_count,
                 trace_steps=tuple(trace_steps),
-                notes=tuple(notes),
+                notes=tuple((*notes, *self._multi_query_notes(processed_query))),
             )
 
         return RetrievalResponse(
@@ -162,6 +178,90 @@ class RetrievalService:
             domain_filter_applied=request.domain_filter_applied,
             debug=debug,
         )
+
+    def _retrieve_multi_query_candidates(
+        self,
+        query: ProcessedQuery,
+        *,
+        mode: RetrievalMode,
+        top_k: int,
+        query_embedding: Sequence[float] | None,
+        request: RetrievalRequest,
+    ) -> list[ScoredChunkCandidate]:
+        candidate_limit = max(top_k, top_k * self.config.multi_query.candidate_pool_multiplier)
+        query_plan = [(query, query_embedding, self.config.multi_query.original_query_weight)]
+
+        variant_texts = query.variants[: max(self.config.multi_query.max_queries - 1, 0)]
+        for variant_text in variant_texts:
+            variant_query = self.query_processor.process(variant_text)
+            variant_query = replace(variant_query, variants=())
+            variant_embedding = None
+            if mode in {RetrievalMode.DENSE, RetrievalMode.HYBRID}:
+                if self.query_embedder is None:
+                    raise ValueError(f"{mode.value} retrieval requires a query embedder")
+                variant_embedding = self.query_embedder.embed(variant_query)
+            query_plan.append((variant_query, variant_embedding, self.config.multi_query.variant_query_weight))
+
+        candidate_groups: dict[str, list[tuple[ScoredChunkCandidate, float, int]]] = {}
+        for planned_query, planned_embedding, query_weight in query_plan:
+            retrieved = self._retrieve_candidates(
+                planned_query,
+                mode=mode,
+                top_k=candidate_limit,
+                query_embedding=planned_embedding,
+                request=request,
+            )
+            for rank, candidate in enumerate(retrieved, start=1):
+                candidate_groups.setdefault(candidate.chunk_id, []).append((candidate, query_weight, rank))
+
+        merged: list[ScoredChunkCandidate] = []
+        for candidate_hits in candidate_groups.values():
+            reference = candidate_hits[0][0]
+            weighted_scores = [candidate.score * weight for candidate, weight, _rank in candidate_hits]
+            rank_bonus = sum((weight / rank) * 0.05 for _candidate, weight, rank in candidate_hits)
+            matched_terms = sorted(
+                {
+                    term
+                    for candidate, _weight, _rank in candidate_hits
+                    for term in candidate.matched_terms
+                }
+            )
+            applied_boosts = sorted(
+                {
+                    boost
+                    for candidate, _weight, _rank in candidate_hits
+                    for boost in candidate.applied_boosts
+                }
+            )
+            merged.append(
+                ScoredChunkCandidate(
+                    record=reference.record,
+                    score=max(weighted_scores) + rank_bonus,
+                    dense_score=max(
+                        (candidate.dense_score for candidate, _weight, _rank in candidate_hits if candidate.dense_score is not None),
+                        default=None,
+                    ),
+                    keyword_score=max(
+                        (candidate.keyword_score for candidate, _weight, _rank in candidate_hits if candidate.keyword_score is not None),
+                        default=None,
+                    ),
+                    fused_score=max(
+                        (candidate.fused_score for candidate, _weight, _rank in candidate_hits if candidate.fused_score is not None),
+                        default=None,
+                    ),
+                    matched_terms=tuple(matched_terms),
+                    applied_boosts=tuple(applied_boosts),
+                )
+            )
+
+        merged.sort(key=lambda candidate: candidate.score, reverse=True)
+        return merged[:candidate_limit]
+
+    def _multi_query_notes(self, query: ProcessedQuery) -> tuple[str, ...]:
+        if not self.config.multi_query.enabled or not query.variants:
+            return ()
+        used_variants = query.variants[: max(self.config.multi_query.max_queries - 1, 0)]
+        return (f"Multi-query variants used: {', '.join(used_variants)}",) if used_variants else ()
 
     def _retrieve_candidates(
         self,

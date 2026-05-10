@@ -14,9 +14,10 @@ class QueryProcessingConfig:
 
     collapse_whitespace: bool = True
     casefold_for_keywords: bool = True
-    enable_query_expansion: bool = False
+    enable_query_expansion: bool = True
     preserve_quoted_phrases: bool = True
     minimum_token_length: int = 2
+    max_query_variants: int = 4
 
 
 @dataclass(slots=True)
@@ -54,6 +55,17 @@ class HybridConfig:
 
 
 @dataclass(slots=True)
+class MultiQueryConfig:
+    """Controls for running several query variants through retrieval."""
+
+    enabled: bool = True
+    max_queries: int = 4
+    candidate_pool_multiplier: int = 2
+    original_query_weight: float = 1.0
+    variant_query_weight: float = 0.82
+
+
+@dataclass(slots=True)
 class SourceTypeProfile:
     """Per-source retrieval and reranking profile."""
 
@@ -84,6 +96,7 @@ class RerankerConfig:
 
     enabled: bool = True
     exact_phrase_boost: float = 0.70
+    keyword_term_boost: float = 0.35
     technical_term_boost: float = 0.18
     metadata_match_boost: float = 0.15
     source_hint_boost: float = 0.20
@@ -113,6 +126,7 @@ class RetrievalConfig:
     vector: VectorRetrieverConfig = field(default_factory=VectorRetrieverConfig)
     keyword: KeywordRetrieverConfig = field(default_factory=KeywordRetrieverConfig)
     hybrid: HybridConfig = field(default_factory=HybridConfig)
+    multi_query: MultiQueryConfig = field(default_factory=MultiQueryConfig)
     reranker: RerankerConfig = field(default_factory=RerankerConfig)
     observability: ObservabilityConfig = field(default_factory=ObservabilityConfig)
     source_profiles: dict[str, SourceTypeProfile] = field(default_factory=_default_source_profiles)
@@ -136,6 +150,7 @@ class RetrievalConfig:
             vector=VectorRetrieverConfig(**payload.get("vector", {})),
             keyword=KeywordRetrieverConfig(**payload.get("keyword", {})),
             hybrid=HybridConfig(**payload.get("hybrid", {})),
+            multi_query=MultiQueryConfig(**payload.get("multi_query", {})),
             reranker=RerankerConfig(**payload.get("reranker", {})),
             observability=ObservabilityConfig(**payload.get("observability", {})),
             source_profiles=source_profiles,
