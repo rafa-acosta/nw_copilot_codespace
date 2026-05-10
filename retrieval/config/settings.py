@@ -96,6 +96,7 @@ class RerankerConfig:
 
     enabled: bool = True
     exact_phrase_boost: float = 0.70
+    definition_match_boost: float = 1.35
     keyword_term_boost: float = 0.35
     technical_term_boost: float = 0.18
     metadata_match_boost: float = 0.15

@@ -303,6 +303,88 @@ class RetrievalPipelineTests(unittest.TestCase):
         self.assertIn("gottfried", response.results[0].matched_terms)
         self.assertIn("keyword_term_match", response.results[0].applied_boosts)
 
+    def test_hybrid_prefers_quoted_definition_in_requested_section(self) -> None:
+        records = [
+            StoredChunk(
+                text=(
+                    '"Maintenance Window": predefined period of time during which the Provider will execute '
+                    "maintenance work that may require temporary interruption of Services."
+                ),
+                embedding=(1.0, 0.0),
+                metadata=ChunkMetadata(
+                    document_id="doc-contract",
+                    source_type="docx",
+                    filename="GOLDEN CONTRACT.docx",
+                    chunk_id="chunk-maintenance",
+                    section="PRELIMINARY SECTION - DEFINITIONS",
+                ),
+            ),
+            StoredChunk(
+                text=(
+                    '"Incident": anomalous, unplanned or disruptive event that causes or could cause '
+                    "degradation or interruption in the provision of Services."
+                ),
+                embedding=(1.0, 0.0),
+                metadata=ChunkMetadata(
+                    document_id="doc-contract",
+                    source_type="docx",
+                    filename="GOLDEN CONTRACT.docx",
+                    chunk_id="chunk-incident",
+                    section="PRELIMINARY SECTION - DEFINITIONS",
+                ),
+            ),
+            StoredChunk(
+                text=(
+                    '"Interruption": any partial, total, temporary or permanent degradation in the '
+                    "availability, speed, reliability, integrity, security or functionality of the Client's "
+                    "network systems."
+                ),
+                embedding=(0.0, 1.0),
+                metadata=ChunkMetadata(
+                    document_id="doc-contract",
+                    source_type="docx",
+                    filename="GOLDEN CONTRACT.docx",
+                    chunk_id="chunk-interruption",
+                    section="PRELIMINARY SECTION - DEFINITIONS",
+                ),
+            ),
+        ]
+        for index in range(12):
+            records.append(
+                StoredChunk(
+                    text=f"Section reference distractor {index} discussing service conditions and definitions.",
+                    embedding=(1.0, 0.0),
+                    metadata=ChunkMetadata(
+                        document_id="doc-contract",
+                        source_type="docx",
+                        filename="GOLDEN CONTRACT.docx",
+                        chunk_id=f"chunk-distractor-{index}",
+                        section="PRELIMINARY SECTION - DEFINITIONS",
+                    ),
+                )
+            )
+
+        config = RetrievalConfig()
+        config.observability.debug = True
+        service = build_retrieval_service(
+            records,
+            query_embedder=CallableQueryEmbedder(lambda _text: (1.0, 0.0), expected_dimension=2),
+            config=config,
+            chroma_path=f"{self.temp_dir.name}/chroma-definition-rescue",
+        )
+
+        response = service.retrieve(
+            RetrievalRequest(
+                query='Based in the section "PRELIMINARY SECTION - DEFINITIONS" define what an "Interruption" is.',
+                mode=RetrievalMode.HYBRID,
+                top_k=4,
+                debug=True,
+            )
+        )
+
+        self.assertEqual(response.results[0].chunk_id, "chunk-interruption")
+        self.assertIn("definition_match", response.results[0].applied_boosts)
+
 
 if __name__ == "__main__":
     unittest.main()

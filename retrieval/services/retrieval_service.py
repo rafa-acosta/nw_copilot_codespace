@@ -188,7 +188,11 @@ class RetrievalService:
         query_embedding: Sequence[float] | None,
         request: RetrievalRequest,
     ) -> list[ScoredChunkCandidate]:
-        candidate_limit = max(top_k, top_k * self.config.multi_query.candidate_pool_multiplier)
+        candidate_limit = max(
+            top_k,
+            top_k * self.config.multi_query.candidate_pool_multiplier,
+            self.config.vector.candidate_pool_size,
+        )
         query_plan = [(query, query_embedding, self.config.multi_query.original_query_weight)]
 
         variant_texts = query.variants[: max(self.config.multi_query.max_queries - 1, 0)]

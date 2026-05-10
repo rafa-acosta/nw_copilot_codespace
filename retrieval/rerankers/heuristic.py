@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Sequence
 
 from retrieval.config import RetrievalConfig
@@ -15,17 +16,21 @@ LOW_SIGNAL_TERMS = {
     "an",
     "and",
     "are",
+    "based",
     "como",
     "cuál",
     "cual",
     "de",
     "del",
+    "define",
+    "definitions",
     "did",
     "do",
     "does",
     "el",
     "en",
     "es",
+    "in",
     "is",
     "la",
     "las",
@@ -37,6 +42,7 @@ LOW_SIGNAL_TERMS = {
     "que",
     "qué",
     "se",
+    "section",
     "the",
     "to",
     "un",
@@ -79,6 +85,15 @@ class HeuristicReranker(Reranker):
             if exact_hits:
                 score += exact_hits * self.config.reranker.exact_phrase_boost * (1.0 + profile.exact_match_weight)
                 boosts.append("exact_phrase")
+
+            definition_hits = sum(1 for phrase in query.quoted_phrases if self._contains_definition(search_text, phrase))
+            if definition_hits:
+                score += (
+                    definition_hits
+                    * self.config.reranker.definition_match_boost
+                    * (1.0 + profile.exact_match_weight)
+                )
+                boosts.append("definition_match")
 
             keyword_terms = self._meaningful_matched_terms(candidate.matched_terms)
             if keyword_terms:
@@ -175,4 +190,17 @@ class HeuristicReranker(Reranker):
             term
             for term in matched_terms
             if len(term) >= 3 and term.casefold() not in LOW_SIGNAL_TERMS
+        )
+
+    @staticmethod
+    def _contains_definition(text: str, term: str) -> bool:
+        normalized_term = term.strip().strip("\"'")
+        if not normalized_term:
+            return False
+        return bool(
+            re.search(
+                rf'(?<!\w)["“”\']?{re.escape(normalized_term)}["“”\']?\s*:',
+                text,
+                flags=re.IGNORECASE,
+            )
         )

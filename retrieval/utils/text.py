@@ -118,10 +118,21 @@ def infer_query_hints(value: str, technical_terms: tuple[str, ...]) -> QueryHint
         collapse_whitespace(match)
         for match in re.findall(r"\bsheet\s+([A-Za-z0-9 _-]+)\b", normalized, flags=re.IGNORECASE)
     )
-    section_terms = tuple(
+    section_matches = [
+        collapse_whitespace(match)
+        for match in re.findall(r"\bsection\s+[\"']([^\"']+)[\"']", normalized, flags=re.IGNORECASE)
+    ]
+    section_matches.extend(
         collapse_whitespace(match)
         for match in re.findall(r"\bsection\s+([A-Za-z0-9 _-]+)\b", normalized, flags=re.IGNORECASE)
+        if not collapse_whitespace(match).startswith("-")
     )
+    section_matches.extend(
+        phrase
+        for phrase in extract_quoted_phrases(normalized)
+        if "section" in phrase.casefold()
+    )
+    section_terms = unique_preserve_order(section_matches)
     json_paths = tuple(term for term in technical_terms if JSON_PATH_PATTERN.fullmatch(term))
 
     cisco_terms: list[str] = []
