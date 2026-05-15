@@ -10,10 +10,10 @@
   <div class="shell">
     <aside class="sidebar">
       <div class="brand-card">
-        <div class="brand-mark">NC</div>
+        <div class="brand-mark">PMC</div>
         <div>
-          <h1>Private Copilot</h1>
-          <p>Local technical RAG workspace</p>
+          <h1>PMC</h1>
+          <p>Local private multidomain copilot</p>
         </div>
       </div>
 
@@ -126,6 +126,9 @@
           <p id="readiness-indicator">No indexed documents yet</p>
         </div>
         <div class="topbar-badges">
+          <button id="toggle-prompt-debug-button" class="secondary-button compact-button" type="button" aria-controls="prompt-debug-panel" aria-expanded="true">
+            Hide Debug
+          </button>
           <span class="badge badge-soft">Fully local</span>
           <span class="badge badge-strong">Private</span>
         </div>
@@ -163,7 +166,7 @@
       </footer>
     </main>
 
-    <aside class="prompt-debug-panel">
+    <aside id="prompt-debug-panel" class="prompt-debug-panel">
       <section class="panel prompt-debug-card">
         <div class="panel-header">
           <h2>Temporary Prompt Debug</h2>

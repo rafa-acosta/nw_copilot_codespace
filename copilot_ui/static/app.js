@@ -1,4 +1,5 @@
 const CUSTOM_MODEL_VALUE = "__custom__";
+const PROMPT_DEBUG_HIDDEN_KEY = "copilot.promptDebugHidden";
 
 const state = {
   documents: [],
@@ -41,9 +42,23 @@ const augmentedPromptContent = document.getElementById("augmented-prompt-content
 const augmentedSystemPrompt = document.getElementById("augmented-system-prompt");
 const augmentedUserPrompt = document.getElementById("augmented-user-prompt");
 const copyAugmentedPromptButton = document.getElementById("copy-augmented-prompt-button");
+const togglePromptDebugButton = document.getElementById("toggle-prompt-debug-button");
+const promptDebugPanel = document.getElementById("prompt-debug-panel");
 
 const activeSourceTypes = new Set();
 const expandedCitationMessages = new Set();
+
+function isPromptDebugHidden() {
+  return localStorage.getItem(PROMPT_DEBUG_HIDDEN_KEY) === "1";
+}
+
+function setPromptDebugVisibility(isHidden) {
+  document.querySelector(".shell").classList.toggle("prompt-debug-hidden", isHidden);
+  promptDebugPanel.hidden = isHidden;
+  togglePromptDebugButton.textContent = isHidden ? "Show Debug" : "Hide Debug";
+  togglePromptDebugButton.setAttribute("aria-expanded", String(!isHidden));
+  localStorage.setItem(PROMPT_DEBUG_HIDDEN_KEY, isHidden ? "1" : "0");
+}
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -878,6 +893,9 @@ topKRange.addEventListener("input", () => {
 });
 clearDocumentsButton.addEventListener("click", () => mutate("/api/documents/clear", {}, "All documents cleared."));
 clearChatButton.addEventListener("click", () => mutate("/api/chat/reset", {}, "Chat cleared."));
+togglePromptDebugButton.addEventListener("click", () => {
+  setPromptDebugVisibility(!promptDebugPanel.hidden);
+});
 copyAugmentedPromptButton.addEventListener("click", async () => {
   const text = [
     "SYSTEM:",
@@ -894,4 +912,5 @@ copyAugmentedPromptButton.addEventListener("click", async () => {
   }
 });
 
+setPromptDebugVisibility(isPromptDebugHidden());
 fetchState().catch((error) => setStatus(error.message, true));
