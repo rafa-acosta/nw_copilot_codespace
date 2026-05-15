@@ -151,6 +151,49 @@ If you use different local models, set `OLLAMA_EMBED_MODEL` and `OLLAMA_CHAT_MOD
 You can also change both models from the GUI itself through the new `Ollama Models` panel. Use `Refresh`
 after pulling a new model, then apply the new chat or embedding model directly in the browser.
 
+### Run the GUI in Docker
+
+The Docker image packages the Python app and serves the GUI on port `8765`. It expects Ollama to be running
+outside the container by default.
+
+First, make sure Ollama is available on the host:
+
+```bash
+ollama pull nomic-embed-text
+ollama pull llama3.1:8b
+ollama serve
+```
+
+Then start the container from the repository root:
+
+```bash
+docker compose up --build
+```
+
+Open:
+
+```text
+http://localhost:8765
+```
+
+The Compose setup stores uploaded documents and the Chroma index in the `nw-copilot-data` Docker volume.
+To use different Ollama models:
+
+```bash
+OLLAMA_CHAT_MODEL=qwen2.5:7b OLLAMA_EMBED_MODEL=nomic-embed-text docker compose up --build
+```
+
+If you run without Compose on Linux, include the host gateway mapping so the container can reach host Ollama:
+
+```bash
+docker build -t nw-copilot .
+docker run --rm \
+  --add-host=host.docker.internal:host-gateway \
+  -p 8765:8765 \
+  -v nw-copilot-data:/data/nw_copilot_ui \
+  nw-copilot
+```
+
 ### On-demand RAGAS evaluation
 
 Assistant answers can be evaluated with RAGAS only when requested. After an answer is generated, use the
