@@ -49,6 +49,7 @@ class RetrievedChunk:
     source_type: str
     dense_score: float | None = None
     keyword_score: float | None = None
+    fused_score: float | None = None
     rerank_score: float | None = None
     matched_terms: tuple[str, ...] = ()
     applied_boosts: tuple[str, ...] = ()

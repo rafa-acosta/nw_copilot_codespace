@@ -105,6 +105,10 @@ class GroundedAnswerGenerator(AnswerGenerator):
             score=result.score,
             excerpt=self._best_excerpt(result.text, query),
             metadata=result.metadata,
+            dense_score=result.dense_score,
+            keyword_score=result.keyword_score,
+            fused_score=result.fused_score,
+            rerank_score=result.rerank_score,
         )
 
     @staticmethod
@@ -180,6 +184,7 @@ class OllamaAnswerGenerator(GroundedAnswerGenerator):
         )
         if prompt_profile is not None:
             system_prompt = f"{system_prompt} {prompt_profile.system_instruction}"
+        user_prompt = self._build_prompt(query, selected_results, citations, retrieval_response, memory)
         content = self.client.chat(
             (
                 {
@@ -188,7 +193,7 @@ class OllamaAnswerGenerator(GroundedAnswerGenerator):
                 },
                 {
                     "role": "user",
-                    "content": self._build_prompt(query, selected_results, citations, retrieval_response, memory),
+                    "content": user_prompt,
                 },
             )
         )
@@ -203,6 +208,10 @@ class OllamaAnswerGenerator(GroundedAnswerGenerator):
                 "result_count": retrieval_response.top_k_results,
                 "answer_provider": "ollama",
                 "answer_model": self.client.chat_model,
+                "augmented_prompt_debug": {
+                    "system": system_prompt,
+                    "user": user_prompt,
+                },
                 **({"conversation_memory": memory.to_dict()} if memory is not None else {}),
                 **self._domain_meta(retrieval_response),
             },

@@ -539,6 +539,10 @@ class OllamaIntegrationTests(unittest.TestCase):
                     chunk_id="chunk_1",
                     text='{"device":{"interfaces":[{"name":"GigabitEthernet1/0/24","status":"up"}]}}',
                     score=0.98,
+                    dense_score=0.68,
+                    keyword_score=12.41,
+                    fused_score=0.873,
+                    rerank_score=2.95,
                     metadata={
                         "filename": "device.json",
                         "json_key_path": "device.interfaces",
@@ -565,10 +569,17 @@ class OllamaIntegrationTests(unittest.TestCase):
         self.assertEqual(answer.meta["answer_provider"], "ollama")
         self.assertEqual(answer.meta["answer_model"], FIXED_OLLAMA_MODEL)
         self.assertEqual(answer.citations[0].label, "device.json • device.interfaces")
+        self.assertEqual(answer.citations[0].score, 0.98)
+        self.assertEqual(answer.citations[0].dense_score, 0.68)
+        self.assertEqual(answer.citations[0].keyword_score, 12.41)
+        self.assertEqual(answer.citations[0].fused_score, 0.873)
+        self.assertEqual(answer.citations[0].rerank_score, 2.95)
         self.assertEqual(client.messages[0]["role"], "system")
         self.assertIn("Question: What interface is up?", client.messages[1]["content"])
         self.assertIn("Conversation memory:", client.messages[1]["content"])
         self.assertIn("What did Gottfried Leibniz improve?", client.messages[1]["content"])
+        self.assertEqual(answer.meta["augmented_prompt_debug"]["system"], client.messages[0]["content"])
+        self.assertEqual(answer.meta["augmented_prompt_debug"]["user"], client.messages[1]["content"])
 
     def test_ollama_answer_generator_applies_domain_specific_prompting(self) -> None:
         class FakeChatClient:

@@ -36,6 +36,11 @@ const embeddingModelSelect = document.getElementById("embedding-model-select");
 const chatModelCustom = document.getElementById("chat-model-custom");
 const embeddingModelCustom = document.getElementById("embedding-model-custom");
 const ollamaStatus = document.getElementById("ollama-status");
+const augmentedPromptEmpty = document.getElementById("augmented-prompt-empty");
+const augmentedPromptContent = document.getElementById("augmented-prompt-content");
+const augmentedSystemPrompt = document.getElementById("augmented-system-prompt");
+const augmentedUserPrompt = document.getElementById("augmented-user-prompt");
+const copyAugmentedPromptButton = document.getElementById("copy-augmented-prompt-button");
 
 const activeSourceTypes = new Set();
 const expandedCitationMessages = new Set();
@@ -57,7 +62,7 @@ async function fetchState() {
   applyState(payload.state);
 }
 
-function applyState(nextState) {
+function applyState(nextState, { scrollTarget = "bottom" } = {}) {
   state.documents = nextState.documents;
   state.messages = nextState.messages;
   state.retrieval_ready = nextState.retrieval_ready;
@@ -66,9 +71,10 @@ function applyState(nextState) {
   state.ollama = nextState.ollama;
 
   renderDocuments();
-  renderMessages();
+  renderMessages({ scrollTarget });
   renderFilters();
   renderOllamaSettings();
+  renderAugmentedPromptDebug();
 
   documentCount.textContent = String(state.documents.length);
   chunkCount.textContent = String(state.chunk_count);
@@ -105,7 +111,7 @@ function renderDocuments() {
   }
 }
 
-function renderMessages({ preserveScroll = false } = {}) {
+function renderMessages({ preserveScroll = false, scrollTarget = "bottom" } = {}) {
   const previousScrollTop = chatScroll.scrollTop;
   messageList.innerHTML = "";
   const template = document.getElementById("message-template");
@@ -126,6 +132,7 @@ function renderMessages({ preserveScroll = false } = {}) {
     } else {
       contentElement.textContent = message.content;
     }
+    contentElement.appendChild(createCopyButton(message.content));
 
     const metaParts = [];
     if (message.meta?.retrieval_mode) {
@@ -189,7 +196,7 @@ function renderMessages({ preserveScroll = false } = {}) {
     for (const citation of citations) {
       const citationFragment = citationTemplate.content.cloneNode(true);
       citationFragment.querySelector(".citation-label").textContent = citation.label;
-      citationFragment.querySelector(".citation-score").textContent = citation.score.toFixed(3);
+      citationFragment.querySelector(".citation-score").textContent = formatCitationScore(citation);
       citationFragment.querySelector(".citation-excerpt").textContent = citation.excerpt;
       citationList.appendChild(citationFragment);
     }
@@ -197,7 +204,130 @@ function renderMessages({ preserveScroll = false } = {}) {
     messageList.appendChild(fragment);
   }
 
-  chatScroll.scrollTop = preserveScroll ? previousScrollTop : chatScroll.scrollHeight;
+  if (preserveScroll) {
+    chatScroll.scrollTop = previousScrollTop;
+  } else if (scrollTarget === "latest-assistant") {
+    scrollLatestAssistantIntoView();
+  } else {
+    chatScroll.scrollTop = chatScroll.scrollHeight;
+  }
+}
+
+function formatCitationScore(citation) {
+  const scoreParts = [
+    ["rank", citation.score],
+    ["fused", citation.fused_score],
+    ["keyword", citation.keyword_score],
+    ["dense", citation.dense_score],
+  ];
+  return scoreParts
+    .filter(([, value]) => Number.isFinite(Number(value)))
+    .map(([label, value]) => `${label} ${Number(value).toFixed(3)}`)
+    .join(" · ");
+}
+
+function renderAugmentedPromptDebug() {
+  const latestDebugMessage = [...state.messages]
+    .reverse()
+    .find((message) => message.role === "assistant" && message.meta?.augmented_prompt_debug);
+  const debugPayload = latestDebugMessage?.meta?.augmented_prompt_debug;
+
+  if (!debugPayload) {
+    augmentedPromptEmpty.hidden = false;
+    augmentedPromptContent.hidden = true;
+    copyAugmentedPromptButton.disabled = true;
+    augmentedSystemPrompt.textContent = "";
+    augmentedUserPrompt.textContent = "";
+    return;
+  }
+
+  augmentedPromptEmpty.hidden = true;
+  augmentedPromptContent.hidden = false;
+  copyAugmentedPromptButton.disabled = false;
+  augmentedSystemPrompt.textContent = debugPayload.system || "";
+  augmentedUserPrompt.textContent = debugPayload.user || "";
+}
+
+function scrollLatestAssistantIntoView() {
+  const assistantMessages = messageList.querySelectorAll(".message.assistant");
+  const latestAssistantMessage = assistantMessages[assistantMessages.length - 1];
+  if (!latestAssistantMessage) {
+    chatScroll.scrollTop = chatScroll.scrollHeight;
+    return;
+  }
+
+  const scrollRect = chatScroll.getBoundingClientRect();
+  const messageRect = latestAssistantMessage.getBoundingClientRect();
+  chatScroll.scrollTop += messageRect.top - scrollRect.top - 4;
+}
+
+function createCopyButton(text) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "ghost-button message-action-button copy-button";
+  button.setAttribute("aria-label", "Copy message");
+  button.title = "Copy message";
+
+  button.addEventListener("click", async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      await copyTextToClipboard(text);
+      showCopyFeedback(button);
+      setStatus("Message copied to clipboard.");
+    } catch (error) {
+      setStatus("Could not copy message to clipboard.", true);
+    }
+  });
+
+  return button;
+}
+
+async function copyTextToClipboard(text) {
+  const normalizedText = String(text || "");
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(normalizedText);
+      return;
+    } catch (error) {
+      // Some browsers expose Clipboard API but block it outside secure contexts.
+    }
+  }
+
+  copyTextWithSelection(normalizedText);
+}
+
+function copyTextWithSelection(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "0";
+  textarea.style.top = "0";
+  textarea.style.width = "1px";
+  textarea.style.height = "1px";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+
+  const copied = document.execCommand("copy");
+  textarea.remove();
+  if (!copied) {
+    throw new Error("Clipboard copy failed");
+  }
+}
+
+function showCopyFeedback(button) {
+  button.classList.add("copied");
+  button.setAttribute("aria-label", "Copied");
+  button.title = "Copied";
+  window.setTimeout(() => {
+    button.classList.remove("copied");
+    button.setAttribute("aria-label", "Copy message");
+    button.title = "Copy message";
+  }, 1400);
 }
 
 function formatSeconds(milliseconds) {
@@ -661,7 +791,7 @@ async function sendMessage() {
         source_types: Array.from(activeSourceTypes),
       }),
     });
-    applyState(payload.state);
+    applyState(payload.state, { scrollTarget: "latest-assistant" });
     setStatus(`${payload.message || "Answer ready."} Took ${formatSeconds(performance.now() - startedAt)}.`);
   } catch (error) {
     setStatus(error.message, true);
@@ -748,5 +878,20 @@ topKRange.addEventListener("input", () => {
 });
 clearDocumentsButton.addEventListener("click", () => mutate("/api/documents/clear", {}, "All documents cleared."));
 clearChatButton.addEventListener("click", () => mutate("/api/chat/reset", {}, "Chat cleared."));
+copyAugmentedPromptButton.addEventListener("click", async () => {
+  const text = [
+    "SYSTEM:",
+    augmentedSystemPrompt.textContent || "",
+    "",
+    "USER:",
+    augmentedUserPrompt.textContent || "",
+  ].join("\n");
+  try {
+    await copyTextToClipboard(text);
+    setStatus("Augmented prompt copied to clipboard.");
+  } catch (error) {
+    setStatus("Could not copy augmented prompt to clipboard.", true);
+  }
+});
 
 fetchState().catch((error) => setStatus(error.message, true));

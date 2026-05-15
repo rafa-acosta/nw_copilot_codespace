@@ -85,6 +85,10 @@ class ChatCitation:
     score: float
     excerpt: str
     metadata: dict[str, Any]
+    dense_score: float | None = None
+    keyword_score: float | None = None
+    fused_score: float | None = None
+    rerank_score: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -92,6 +96,10 @@ class ChatCitation:
             "label": self.label,
             "source_type": self.source_type,
             "score": self.score,
+            "dense_score": self.dense_score,
+            "keyword_score": self.keyword_score,
+            "fused_score": self.fused_score,
+            "rerank_score": self.rerank_score,
             "excerpt": self.excerpt,
             "metadata": self.metadata,
         }

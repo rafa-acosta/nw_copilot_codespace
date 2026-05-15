@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NW Copilot</title>
+  <title>Private Copilot</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
       <div class="brand-card">
         <div class="brand-mark">NC</div>
         <div>
-          <h1>NW Copilot</h1>
+          <h1>Private Copilot</h1>
           <p>Local technical RAG workspace</p>
         </div>
       </div>
@@ -162,6 +162,24 @@
         <div id="status-line" class="status-line">Ready when you are.</div>
       </footer>
     </main>
+
+    <aside class="prompt-debug-panel">
+      <section class="panel prompt-debug-card">
+        <div class="panel-header">
+          <h2>Temporary Prompt Debug</h2>
+          <button id="copy-augmented-prompt-button" class="ghost-button" disabled>Copy</button>
+        </div>
+        <p id="augmented-prompt-empty" class="status-line">
+          Ask a question with indexed documents to see the augmented prompt sent to Ollama.
+        </p>
+        <div id="augmented-prompt-content" class="prompt-debug-content" hidden>
+          <h3>System</h3>
+          <pre id="augmented-system-prompt"></pre>
+          <h3>User</h3>
+          <pre id="augmented-user-prompt"></pre>
+        </div>
+      </section>
+    </aside>
   </div>
 
   <template id="document-item-template">

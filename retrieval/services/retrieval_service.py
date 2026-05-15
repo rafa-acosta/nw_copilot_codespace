@@ -326,6 +326,7 @@ class RetrievalService:
             source_type=metadata.source_type,
             dense_score=candidate.dense_score,
             keyword_score=candidate.keyword_score,
+            fused_score=candidate.fused_score,
             rerank_score=candidate.rerank_score,
             matched_terms=candidate.matched_terms,
             applied_boosts=candidate.applied_boosts,
